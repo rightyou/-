@@ -1,39 +1,78 @@
 import numpy as np
 import pandas as pd
 import math
+from gurobipy import *
+from 需求响应.procedure import show
 
 
 class EVA():
-    def __init__(self, dict_):
-        self.EV_BUS = dict_['EV_BUS']
-        self.EV_T_in = dict_['EV_T_in']
-        self.EV_T_out = dict_['EV_T_out']
-        self.EV_SOC_in = dict_['EV_SOC_in']
-        self.EV_SOC_out = dict_['EV_SOC_out']
-        self.EV_C_max = dict_['EV_C_max']
-        self.EV_P_char_max = dict_['EV_P_char_max']
-        self.EV_lambda_char = dict_['EV_lambda_char']
+    def __init__(self, data_):
+        self.EV_BUS = data_['EV_BUS']
+        self.EV_T_in = data_['EV_T_in']
+        self.EV_T_out = data_['EV_T_out']
+        self.EV_SOC_in = data_['EV_SOC_in']
+        self.EV_SOC_out = data_['EV_SOC_out']
+        self.EV_C_max = data_['EV_C_max']
+        self.EV_P_char_max = data_['EV_P_char_max']
+        self.EV_lambda_char = data_['EV_lambda_char']
         self.EVA_BUS = np.unique(self.EV_BUS)
 
-        EVA_up = np.zeros((len(self.EVA_BUS),dict_['T']))
-        EVA_down = np.zeros((len(self.EVA_BUS), dict_['T']))
-        EVA_P_char_max = np.zeros((len(self.EVA_BUS), dict_['T']))
+        EVA_ub = np.zeros((len(self.EVA_BUS), data_['T']))
+        EVA_lb = np.zeros((len(self.EVA_BUS), data_['T']))
+        EVA_P_char_max = np.zeros((len(self.EVA_BUS), data_['T']))
+        EVA_C_out = np.zeros((len(self.EVA_BUS), data_['T']))  # 电动汽车离开时带走的电量
         for i in range(len(self.EV_BUS)):
             P = self.EV_lambda_char[i]*self.EV_P_char_max[i]
-            EVA_P_char_max[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]:self.EV_T_out[i]] += P
+            EVA_P_char_max[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]:self.EV_T_out[i]+1] += P
             delta_T = math.ceil(self.EV_C_max[i]*(self.EV_SOC_out[i]-self.EV_SOC_in[i])/P)
             if self.EV_T_out[i]-self.EV_T_in[i] < delta_T:
                 for j in range(self.EV_T_out[i]-self.EV_T_in[i]):
-                    EVA_up[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]+j:self.EV_T_out[i]] += P  # 实际时间与索引序号差一
-                EVA_down[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]:self.EV_T_out[i]] = EVA_up[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]:self.EV_T_out[i]]
+                    EVA_ub[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]+j+1:self.EV_T_out[i]+1] += P  # 实际时间与索引序号差一
+                EVA_lb[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]+1:self.EV_T_out[i]+1] = EVA_ub[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]+1:self.EV_T_out[i]+1]
+                EVA_C_out[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]),self.EV_T_out[i]+1] += P*(self.EV_T_out[i]-self.EV_T_in[i])
             else:
                 for j in range(delta_T):
-                    EVA_up[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]+j:self.EV_T_in[i]+delta_T] += P
-                    EVA_up[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i] + delta_T:self.EV_T_out[i]] += P
-                    EVA_down[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_out[i]-1:self.EV_T_out[i]-j-2:-1] += P
-        self.EVA_up = EVA_up
-        self.EVA_down = EVA_down
+                    EVA_ub[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]+j+1:self.EV_T_in[i]+delta_T+1] += P
+                    EVA_ub[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i] + delta_T+1:self.EV_T_out[i]+1] += P
+                    EVA_lb[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_out[i]:self.EV_T_out[i]-j-1:-1] += P
+                EVA_C_out[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_out[i]+1] += EVA_lb[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_out[i]]
+        self.EVA_ub = EVA_ub
+        self.EVA_lb = EVA_lb
         self.EVA_P_char_max = EVA_P_char_max
+        self.EVA_C_out = EVA_C_out
+
+    def EV_distribution(self, dict_):
+        SOC = 1-self.EV_SOC_in
+        T = dict_['Param'].T
+        self.EV_P = np.zeros((len(self.EV_BUS),T))
+        for i in range(len(self.EVA_BUS)):
+            for j in range(T):
+                # 能量缓冲系数一致性
+                model = Model('EV_distribution')
+
+                num = []
+                for m in range(len(self.EV_BUS)):
+                    if self.EV_BUS[m]==self.EVA_BUS[i] and self.EV_T_in[m]<=j<=self.EV_T_out[m]:
+                        num.append(m)
+
+                EV_ = model.addVars(len(num), vtype=GRB.CONTINUOUS, name='EV_P')
+                lambda_ = model.addVar(vtype=GRB.CONTINUOUS,name='lambda')
+
+                model.addConstr((quicksum(EV_[k]*SOC[num[k]] for k in range(len(EV_)))==lambda_*len(EV_)),name='A')
+                model.addConstr((quicksum(EV_[k] for k in range(len(EV_)))==self.EVA_P[i,j]),name='B')
+
+                model.setObjective(quicksum((EV_[k]*SOC[num[k]]-lambda_)**2 for k in range(len(EV_))),GRB.MINIMIZE)
+
+                # model.write('out.lp')
+                model.setParam("OutputFlag", 0)
+                model.setParam('Nonconvex', 2)
+                model.setParam("MIPGap", 0)
+                model.optimize()
+
+                EV_P = show.single_var(EV_, len(EV_))
+                for k in range(len(EV_)):
+                        self.EV_P[num[k],j] = EV_P[k]
+
 
 
 

@@ -46,7 +46,7 @@ class DA_SP():
         T = dict_['T']
         ED_ = dict_['EDBase']
         scenario_num = dict_['scenario_num']
-        EDGPrice =dict_['EDGPrice']
+        EDGPrice = dict_['EDGPrice']
         SPrice = dict_['SPrice']
         BPrice = dict_['BPrice']
         P = dict_['P']
