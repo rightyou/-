@@ -24,7 +24,7 @@ class DA_EVA():
         # 添加变量
         '''
         EDG_ - 发电机发电功率
-        EVA_ - 电动汽车集合充电站充电功率
+        EVA_ - 电动汽车集合充电站实际充电功率（非电网进入充电站功率）
         '''
         EDG_ = model.addVars(len(EDG_ub), T, vtype=GRB.CONTINUOUS, lb=EDG_lb, ub=EDG_ub, name='EDG')
         EVA_ = model.addVars(len(EVA_ub), T, vtype=GRB.CONTINUOUS, ub=EVA_P_char_max, name='EVA')
@@ -49,7 +49,7 @@ class DA_EVA():
 
 
         # 模型求解
-        model.write('out.lp')
+        # model.write('out.lp')
         model.setParam("OutputFlag", 0)
         model.setParam('Nonconvex', 2)
         model.setParam("MIPGap", 0)
