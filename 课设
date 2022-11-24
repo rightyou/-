@@ -1,0 +1,52 @@
+import copy
+import os
+import pandas as pd
+
+f = open(r'39.dat',encoding='utf-8')
+initial_data = []
+for line in f:
+    s = line.strip().split('\t')
+    initial_data.append(s)
+f.close()
+
+load_data_Load_P = pd.read_excel('负荷有功.xlsx', index_col=0)
+load_data_generator_P = pd.read_excel('发电机有功.xlsx', index_col=0)
+load_data_Load_Q = pd.read_excel('负荷无功.xlsx', index_col=0)
+
+for m in range(96):
+    col = ('T{:0>2}{:0>2}'.format(m//4, m%4*15))
+    data = copy.deepcopy(initial_data)
+
+    for i in range(len(load_data_Load_P.axes[0])):
+        for j in range(len(data)):
+            if (' '+load_data_Load_P.axes[0][i]+' ') in data[j][0]:
+                o = data[j][0][20:25]
+                v = float(load_data_Load_P[col][load_data_Load_P.axes[0][i]])
+                data[j][0] = data[j][0].replace(o, '{: <5g}'.format(v))
+                break
+
+    for i in range(len(load_data_generator_P.axes[0])):
+        for j in range(len(data)):
+            if (' ' + load_data_generator_P.axes[0][i] + ' ') in data[j][0]:
+                o = data[j][0][42:47]
+                v = float(load_data_generator_P[col][load_data_generator_P.axes[0][i]])
+                data[j][0] = data[j][0].replace(o, '{: <5g}'.format(v))
+                break
+
+    for i in range(len(load_data_Load_Q.axes[0])):
+        for j in range(len(data)):
+            if (' ' + load_data_Load_Q.axes[0][i] + ' ') in data[j][0]:
+                o = data[j][0][25:30]
+                v = float(load_data_Load_Q[col][load_data_Load_Q.axes[0][i]])
+                data[j][0] = data[j][0].replace(o, '{: <5g}'.format(v))
+                break
+
+    filename = '39_'+col+'.dat'
+    path = '39_'+col
+    folder = os.path.exists(path)
+    if not folder:  # 判断是否存在文件夹如果不存在则创建为文件夹
+        os.makedirs(path)
+    with open('{}\\{}'.format(path, filename), 'w', encoding='utf-8') as f:
+        for i in data:
+            f.write(i[0]+'\n')
+    f.close()
