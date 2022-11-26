@@ -7,6 +7,7 @@ from 需求响应.procedure import show
 
 class EVA():
     def __init__(self, data_):
+        self.EVA_P = None
         self.EV_BUS = data_['EV_BUS']
         self.EV_T_in = data_['EV_T_in']
         self.EV_T_out = data_['EV_T_out']

@@ -25,9 +25,12 @@ class DA_EVA():
         '''
         EDG_ - 发电机发电功率
         EVA_ - 电动汽车集合充电站实际充电功率（非电网进入充电站功率）
+        k1,k2 - 求解峰谷差最小化目标函数参数
         '''
         EDG_ = model.addVars(len(EDG_ub), T, vtype=GRB.CONTINUOUS, lb=EDG_lb, ub=EDG_ub, name='EDG')
         EVA_ = model.addVars(len(EVA_ub), T, vtype=GRB.CONTINUOUS, ub=EVA_P_char_max, name='EVA')
+        k1 = model.addVar(vtype=GRB.CONTINUOUS, name='k1')
+        k2 = model.addVar(vtype=GRB.CONTINUOUS, name='k2')
 
         # 添加约束
         '''
@@ -38,14 +41,16 @@ class DA_EVA():
         for i in range(len(EVA_ub)):
             for j in range(T):
                 model.addConstr((quicksum(EVA_[i,k]-EVA_C_out[i,k] for k in range(j+1))<=EVA_ub[i,j]), name='EVA_C_max')  # 电动汽车当天累计充电电量减去汽车离开时的所冲电量落在充电功率曲线中
-        for i in range(len(EVA_ub)):
-            for j in range(T):
                 model.addConstr((quicksum(EVA_[i,k]-EVA_C_out[i,k] for k in range(j+1))>=EVA_lb[i,j]), name='EVA_C_min')
         for j in range(T):
             model.addConstr((quicksum(EDG_[m,j] for m in range(len(EDG_ub)))-quicksum(EVA_[n,j] for n in range(len(EVA_ub)))-ED.sum(0)[j]==0),name='PowerBalance')
+            model.addConstr((k1 <= ED.sum(0)[j] + quicksum(EVA_[n, j] for n in range(len(EVA_ub)))), name='k1_constraint')
+            model.addConstr((k2 >= ED.sum(0)[j] + quicksum(EVA_[n, j] for n in range(len(EVA_ub)))), name='k2_constraint')
+
 
         # 目标设置
-        model.setObjective(quicksum((quicksum(EVA_[n,j] for n in range(len(EVA_ub)))+ED.sum(0)[j]-ED_avg)**2 for j in range(T)),GRB.MINIMIZE)
+
+        model.setObjective(k2-k1,GRB.MINIMIZE)
 
 
         # 模型求解
