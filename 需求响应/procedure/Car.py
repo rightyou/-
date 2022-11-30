@@ -94,30 +94,57 @@ class Taxi(Car):
             if t < self.Car_T_start[i]:
                 break
 
+            if t > self.Car_T_end[i] and self.Car_area_T[i] == self.Car_area_start[i]:
+                break
+
+            if t > self.Car_T_end[i] and self.Car_destination[i] == 0:
+                self.Car_route[i] = Taxi.destination_route_generate(self, dict_, i, t)
+
             # 评估充电需求
             if self.Car_SOC_T[i] <= self.Car_SOC_warn[i]:
-                if self.Car_destination[i] == 0 or self.Car_SOC_T - self.Car_P * ... <= self.Car_SOC_baseline:
-                    Taxi.charge_route_generate(dict_, i)
+                distance = 0
+                for n in self.Car_route[i]:
+                    for j in range(len(dict_['Road'].Road_network)):
+                        if n is dict_['Road'].Road_network[j]:
+                            distance += dict_['Road'].Road_length[j]
+                if self.Car_destination[i] == 0 or self.Car_SOC_T[i] - self.Car_P[i] * distance <= self.Car_SOC_baseline[i]:
+                    Taxi.charge_route_generate(self, dict_, i, t)
 
             # 目的地选取
             if self.Car_destination[i] == 0:
                 Taxi.destination_generate(self, dict_, i)
                 self.Car_route[i] = Taxi.destination_route_generate(self, dict_, i, t)
-                self.Car_next = np.array([self.Car_area_T,0])
+                self.Car_next[i,0] = np.sum(self.Car_route[i][0]) - self.Car_area_T[i]
 
             # # 状态更新
-            self.Car_area_T[i] = ...
-            self.Car_v[i] = ...
-            self.Car_SOC_T[i] = ...
-            self.Car_next[i,1] = ...
+            # self.Car_area_T[i] = ...
+            for j in range(len(dict_['Road'].Road_network)):
+                if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
+                    dict_['Road'].Road_flow[j, t] += 1
+                    break
+            for j in range(len(dict_['Road'].Road_network)):
+                if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
+                    beta = dict_['Road'].a_b_n[dict_['Road'].Road_grade[j] - 1][0] + \
+                       dict_['Road'].a_b_n[dict_['Road'].Road_grade[j] - 1][1] * (
+                               dict_['Road'].Road_flow[j, t] / dict_['Road'].Road_capacity[j]) ** \
+                       dict_['Road'].a_b_n[dict_['Road'].Road_grade[j] - 1][2]
+                    speed = self.Car_v[i] / (1 + (dict_['Road'].Road_flow[j,t] / dict_['Road'].Road_capacity[j]) ** beta)
+                    self.Car_SOC_T[i] -= speed*dict_['Param'].TT * self.Car_P[i]/self.Car_C_max[i]
+                    for k in range(len(dict_['Road'].Road_network)):
+                        if (self.Car_area_T[i] in dict_['Road'].Road_network[k]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[k]):
+                            self.Car_next[i,1] += speed*dict_['Param'].TT / dict_['Road'].Road_length[k]
+                            break
+                    break
             if self.Car_next[i,1] > 1:
+                self.Car_area_T[i] = self.Car_next[i,0]
                 self.Car_route[i] = np.delete(self.Car_route[i],0,0)
+                if len(self.Car_route[i]) == 0:
+                    self.Car_destination[i] = 0
+                    break
                 self.Car_next[i,0] = np.sum(self.Car_route[i][0]) - self.Car_next[i,0]
                 self.Car_next[i,1] = 0
-            dict_['Road'].Road_flow = ...
 
-            if t > self.Car_T_end[i] and ...:
-                ...
+
 
     def destination_generate(self, dict_, i):
         while True:
@@ -125,8 +152,10 @@ class Taxi(Car):
             if self.Car_destination[i] != self.Car_area_T[i]:
                 break
 
-    def charge_route_generate(self, dict_, i):
-        pass
+    def charge_route_generate(self, dict_, i, t):
+        for j in range(len(dict_['Road'].Road_network)):
+            if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
+                dict_['Road'].Road_charge[j, t] += 1
 
 
 class PrivateCar(Car):
@@ -142,9 +171,6 @@ class PrivateCar(Car):
         self.Car_T_back = dict_['Car_T_back']
 
     def behavior(self, dict_):
-        pass
-
-    def destination_route_generate(self, dict_, i):
         pass
 
     def charge_route_generate(self, dict_):
