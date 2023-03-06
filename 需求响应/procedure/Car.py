@@ -23,19 +23,20 @@ class Car():
         '''
         # self.Car_type = data_['Car_type']
         self.Car_C_max = data_['Car_C_max']
+        self.Car_num = len(self.Car_C_max)
         self.Car_P_charge = data_['Car_P_charge']
         self.Car_P = data_['Car_P']
         self.Car_v = data_['Car_v']
         self.Car_area_start = data_['Car_area_start']
-        self.Car_next = np.zeros((len(self.Car_area_start), 2))
+        self.Car_next = np.zeros((self.Car_num, 2))
         self.Car_area_T = data_['Car_area_start']
         self.Car_T_start = data_['Car_T_start']
         self.Car_SOC_start = data_['Car_SOC_start']
         self.Car_SOC_T = data_['Car_SOC_start']
         self.Car_SOC_warn = data_['Car_SOC_warn']
         self.Car_SOC_baseline = data_['Car_SOC_baseline']
-        self.Car_route = [[]for i in range(len(self.Car_area_start))]
-        self.Car_charge_flag = np.zeros((len(self.Car_area_start)),dtype=bool)
+        self.Car_route = [[]for i in range(self.Car_num)]
+        self.Car_charge_flag = np.zeros(self.Car_num,dtype=bool)
         # self.Car_area_end = data_['Car_area_end']
         self.Car_T_end = data_['Car_T_end']
         self.Car_destination = np.zeros(self.Car_T_end.shape)  # 0代表没有目的地
@@ -90,7 +91,7 @@ class Car():
 
         cost, w1, w2 = float('inf'), 1, 2
         power = self.Car_C_max[i] * (0.9 - self.Car_SOC_T[i])
-        for j in range(len(dict_['CS'].CS_BUS)):
+        for j in range(dict_['CS'].CS_num):
             self.Car_destination[i] = dict_['CS'].CS_area[j]
             price = dict_['CS'].CS_Price[j, t//120]
             route_, r_cost_ = Taxi.destination_route_generate(self, dict_, i, t)
@@ -114,7 +115,7 @@ class Taxi(Car):
         super().__init__(data_)
 
     def behavior(self, dict_, t):
-        for i in range(len(self.Car_P)):
+        for i in range(self.Car_num):
             if t//120 < self.Car_T_start[i]:
                 continue
 
@@ -135,6 +136,7 @@ class Taxi(Car):
             if self.Car_SOC_T[i] <= self.Car_SOC_warn[i]:
                 if self.Car_area_T[i] in dict_['CS'].CS_area:
                     self.Car_charge_flag[i] = True
+
                     self.Car_SOC_T[i] = self.Car_SOC_T[i] + self.Car_P_charge[i]/self.Car_C_max[i]
                     continue
 
@@ -156,11 +158,11 @@ class Taxi(Car):
 
             # # 状态更新
             # self.Car_area_T[i] = ...
-            for j in range(len(dict_['Road'].Road_network)):
+            for j in range(dict_['Road'].Road_num):
                 if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
                     dict_['Road'].Road_flow[j, t] += 1
                     break
-            for j in range(len(dict_['Road'].Road_network)):
+            for j in range(dict_['Road'].Road_num):
                 if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
                     beta = dict_['Road'].a_b_n[dict_['Road'].Road_grade[j] - 1][0] + \
                        dict_['Road'].a_b_n[dict_['Road'].Road_grade[j] - 1][1] * (
@@ -168,7 +170,7 @@ class Taxi(Car):
                        dict_['Road'].a_b_n[dict_['Road'].Road_grade[j] - 1][2]
                     speed = self.Car_v[i] / (1 + (dict_['Road'].Road_flow[j,t] / dict_['Road'].Road_capacity[j]) ** beta)
                     self.Car_SOC_T[i] -= speed * self.Car_P[i]/self.Car_C_max[i]
-                    for k in range(len(dict_['Road'].Road_network)):
+                    for k in range(dict_['Road'].Road_num):
                         if (self.Car_area_T[i] in dict_['Road'].Road_network[k]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[k]):
                             self.Car_next[i,1] += speed*dict_['Param'].TT / dict_['Road'].Road_length[k]
                             break
@@ -205,7 +207,7 @@ class PrivateCar(Car):
         self.Car_area_end = data_['Car_area_end']
 
     def behavior(self, dict_, t):
-        for i in range(len(self.Car_P)):
+        for i in range(self.Car_num):
 
             if t//120 == self.Car_T_start[i]:
                 self.Car_destination[i] = self.Car_area_end[i]
@@ -238,11 +240,11 @@ class PrivateCar(Car):
 
             # 状态更新
             if self.Car_destination[i] != 0:
-                for j in range(len(dict_['Road'].Road_network)):
+                for j in range(dict_['Road'].Road_num):
                     if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
                         dict_['Road'].Road_flow[j, t] += 1
                         break
-                for j in range(len(dict_['Road'].Road_network)):
+                for j in range(dict_['Road'].Road_num):
                     if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
                         beta = dict_['Road'].a_b_n[dict_['Road'].Road_grade[j] - 1][0] + \
                            dict_['Road'].a_b_n[dict_['Road'].Road_grade[j] - 1][1] * (
@@ -250,9 +252,9 @@ class PrivateCar(Car):
                            dict_['Road'].a_b_n[dict_['Road'].Road_grade[j] - 1][2]
                         speed = self.Car_v[i] / (1 + (dict_['Road'].Road_flow[j,t] / dict_['Road'].Road_capacity[j]) ** beta)
                         self.Car_SOC_T[i] -= speed * self.Car_P[i]/self.Car_C_max[i]
-                        for k in range(len(dict_['Road'].Road_network)):
+                        for k in range(dict_['Road'].Road_num):
                             if (self.Car_area_T[i] in dict_['Road'].Road_network[k]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[k]):
-                                self.Car_next[i,1] += speed*dict_['Param'].TT / dict_['Road'].Road_length[k]
+                                self.Car_next[i,1] += speed / dict_['Road'].Road_length[k]
                                 break
                         break
                 if self.Car_next[i,1] > 1:
@@ -264,6 +266,6 @@ class PrivateCar(Car):
                     self.Car_next[i,0] = np.sum(self.Car_route[i][0]) - self.Car_next[i,0]
                     self.Car_next[i,1] = 0
 
-            #  进入电动汽车需求相应充电模式
+            #  进入电动汽车需求响应充电模式
             else:
                 pass

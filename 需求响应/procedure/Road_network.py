@@ -17,6 +17,7 @@ class Road():
         '''
         self.area_num = data_['area_num']
         self.Road_network = data_['Road_network']
+        self.Road_num = len(self.Road_network)
         self.Road_length = data_['Road_length']
         self.Road_grade = data_['Road_grade']
         self.Road_capacity = data_['Road_capacity']

@@ -9,6 +9,7 @@ class EVA():
     def __init__(self, data_):
         self.EVA_P = None
         self.EV_BUS = data_['EV_BUS']
+        self.EV_num = len(self.EV_BUS)
         self.EV_T_in = data_['EV_T_in']
         self.EV_T_out = data_['EV_T_out']
         self.EV_SOC_in = data_['EV_SOC_in']
@@ -17,12 +18,13 @@ class EVA():
         self.EV_P_char_max = data_['EV_P_char_max']
         self.EV_lambda_char = data_['EV_lambda_char']
         self.EVA_BUS = np.unique(self.EV_BUS)
+        self.EVA_num = len(self.EVA_BUS)
 
-        EVA_ub = np.zeros((len(self.EVA_BUS), data_['T']))
-        EVA_lb = np.zeros((len(self.EVA_BUS), data_['T']))
-        EVA_P_char_max = np.zeros((len(self.EVA_BUS), data_['T']))
-        EVA_C_out = np.zeros((len(self.EVA_BUS), data_['T']))  # 电动汽车离开时带走的电量
-        for i in range(len(self.EV_BUS)):
+        EVA_ub = np.zeros((self.EVA_num, data_['T']))
+        EVA_lb = np.zeros((self.EVA_num, data_['T']))
+        EVA_P_char_max = np.zeros((self.EVA_num, data_['T']))
+        EVA_C_out = np.zeros((self.EVA_num, data_['T']))  # 电动汽车离开时带走的电量
+        for i in range(self.EV_num):
             P = self.EV_lambda_char[i]*self.EV_P_char_max[i]
             EVA_P_char_max[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]:self.EV_T_out[i]+1] += P
             delta_T = math.ceil(self.EV_C_max[i]*(self.EV_SOC_out[i]-self.EV_SOC_in[i])/P)
@@ -45,13 +47,13 @@ class EVA():
     def EV_distribution_consist(self, dict_):
         SOC = 1-self.EV_SOC_in
         T = dict_['Param'].T
-        self.EV_P = np.zeros((len(self.EV_BUS),T))
-        for i in range(len(self.EVA_BUS)):
+        self.EV_P = np.zeros((self.EV_num,T))
+        for i in range(self.EVA_num):
             for j in range(T):
                 # 能量缓冲系数一致性
                 model = Model('EV_distribution')
                 num = []
-                for m in range(len(self.EV_BUS)):
+                for m in range(self.EV_num):
                     if self.EV_BUS[m]==self.EVA_BUS[i] and self.EV_T_in[m]<=j<=self.EV_T_out[m]:
                         num.append(m)
 
@@ -80,8 +82,8 @@ class EVA():
         T = dict_['Param'].T
 
         EV_P_max = self.EV_lambda_char * self.EV_P_char_max
-        EV_lb = np.zeros((len(self.EV_BUS),T))  # 确定完成电动汽车需求的最小充电曲线边界，考虑最大充电功率和电网实际供电量
-        for i in range(len(self.EV_BUS)):
+        EV_lb = np.zeros((self.EV_num,T))  # 确定完成电动汽车需求的最小充电曲线边界，考虑最大充电功率和电网实际供电量
+        for i in range(self.EV_num):
             delta_T = math.ceil(self.EV_C_max[i] * (self.EV_SOC_out[i] - self.EV_SOC_in[i]) / EV_P_max[i])
             if self.EV_T_out[i] - self.EV_T_in[i] < delta_T:
                 EV_lb[i, self.EV_T_out[i]] = (self.EV_T_out[i] - self.EV_T_in[i]) * EV_P_max[i]
@@ -91,15 +93,15 @@ class EVA():
                 EV_lb[i,self.EV_T_out[i]-j] = max(EV_lb[i,self.EV_T_out[i]-j+1]-EV_P_max[i], EV_lb[i,self.EV_T_out[i]-j+1]-self.EVA_P[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]),self.EV_T_out[i]-j+1])
 
         SOC = 1 - self.EV_SOC_in
-        self.EV_P = np.zeros((len(self.EV_BUS), T))
-        for i in range(len(self.EVA_BUS)):
+        self.EV_P = np.zeros((self.EV_num, T))
+        for i in range(self.EVA_num):
             for j in range(T):
                 # 能量缓冲系数一致性
                 model = Model('EV_distribution')
 
 
                 num = []
-                for m in range(len(self.EV_BUS)):
+                for m in range(self.EV_num):
                     if self.EV_BUS[m] == self.EVA_BUS[i] and self.EV_T_in[m] <= j <= self.EV_T_out[m]:
                         num.append(m)
 

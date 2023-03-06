@@ -10,6 +10,7 @@ class CS():
         CS_Price 充电站电价信息
         '''
         self.CS_BUS = data_['CS_BUS']
+        self.CS_num = len(self.CS_BUS)
         self.CS_area = data_['CS_area']
         self.CS_charging_pile_num = data_['CS_charging_pile_num']
         self.CS_Price = data_['CS_Price']
