@@ -1,6 +1,6 @@
 import numpy as np
 
-import 需求响应.procedure.data_process
+
 
 
 class Road():
@@ -21,6 +21,6 @@ class Road():
         self.Road_length = data_['Road_length']
         self.Road_grade = data_['Road_grade']
         self.Road_capacity = data_['Road_capacity']
-        self.Road_flow = np.zeros((len(self.Road_grade), data_['TT']))
-        self.Road_charge = np.zeros((len(self.Road_grade), data_['TT']))
+        self.Road_flow = np.zeros((self.Road_num, data_['TT']))
+        self.Road_charge = np.zeros((self.Road_num, data_['TT']))
         self.a_b_n = np.array([[1.726,3.15,3.],[2.076,2.87,3.]])

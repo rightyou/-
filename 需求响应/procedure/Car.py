@@ -1,6 +1,5 @@
 import random
 
-import 需求响应.procedure.data_process
 import numpy as np
 
 
@@ -11,7 +10,6 @@ class Car():
         Car_P 每公里耗电量
         Car_v 正常行驶速度
         Car_SOC_warn 电量预警SOC
-        Car_SOC_baseline 电量SOC底线
         Car_P_charge 充电最大功率
         Car_area_start 初始位置
         Car_next 汽车将驶向的下一个节点以及进度
@@ -20,6 +18,7 @@ class Car():
         Car_area_T T时刻位置
         Car_SOC_T T时刻SOC
         Car_charge_flag 汽车接入充电桩
+        Car_P_charge_lambda 汽车充电效率
         '''
         # self.Car_type = data_['Car_type']
         self.Car_C_max = data_['Car_C_max']
@@ -29,14 +28,14 @@ class Car():
         self.Car_v = data_['Car_v']
         self.Car_area_start = data_['Car_area_start']
         self.Car_next = np.zeros((self.Car_num, 2))
-        self.Car_area_T = data_['Car_area_start']
+        self.Car_area_T = data_['Car_area_start'].copy()
         self.Car_T_start = data_['Car_T_start']
         self.Car_SOC_start = data_['Car_SOC_start']
-        self.Car_SOC_T = data_['Car_SOC_start']
+        self.Car_SOC_T = data_['Car_SOC_start'].copy()
         self.Car_SOC_warn = data_['Car_SOC_warn']
-        self.Car_SOC_baseline = data_['Car_SOC_baseline']
         self.Car_route = [[]for i in range(self.Car_num)]
         self.Car_charge_flag = np.zeros(self.Car_num,dtype=bool)
+        self.Car_P_charge_lambda = data_['P_charge_lambda']
         # self.Car_area_end = data_['Car_area_end']
         self.Car_T_end = data_['Car_T_end']
         self.Car_destination = np.zeros(self.Car_T_end.shape)  # 0代表没有目的地
@@ -44,14 +43,15 @@ class Car():
     def destination_route_generate(self, dict_, i, t):
         # 更新全路段行车效率
         weight = {}
-        for j in range(len(dict_['Road'].Road_network)):
+        for j in range(dict_['Road'].Road_num):
             beta = dict_['Road'].a_b_n[dict_['Road'].Road_grade[j] - 1][0] + \
                    dict_['Road'].a_b_n[dict_['Road'].Road_grade[j] - 1][1] * (
-                               dict_['Road'].Road_flow[j,t] / dict_['Road'].Road_capacity[j]) ** \
+                           dict_['Road'].Road_flow[j, t] / dict_['Road'].Road_capacity[j]) ** \
                    dict_['Road'].a_b_n[dict_['Road'].Road_grade[j] - 1][2]
             x = tuple(dict_['Road'].Road_network[j])
             weight[x] = dict_['Road'].Road_length[j] / (
                         self.Car_v[i] / (1 + (dict_['Road'].Road_flow[j,t] / dict_['Road'].Road_capacity[j]) ** beta))
+
 
         # Dijkstra路径寻优
         routes = np.zeros((1,2))
@@ -114,18 +114,34 @@ class Taxi(Car):
     def __init__(self, data_):
         super().__init__(data_)
 
-    def behavior(self, dict_, t):
+    def behavior(self, data_, dict_, t):
         for i in range(self.Car_num):
-            if t//120 < self.Car_T_start[i]:
+            if t//30 < self.Car_T_start[i]:
+                continue
+            if t//30 == self.Car_T_start[i]:
+                self.Car_charge_flag[i] = 0
+
+            if t//30 > self.Car_T_end[i] and self.Car_area_T[i] == self.Car_area_start[i]:
+                if not self.Car_charge_flag[i]:
+                    data_['EV_BUS'] = np.append(data_['EV_BUS'], dict_['area'].area_BUS[self.Car_area_T[i]])
+                    data_['EV_T_in'] = np.append(data_['EV_T_in'], t // 30)
+                    data_['EV_T_out'] = np.append(data_['EV_T_out'], self.Car_T_start[i])
+                    data_['EV_SOC_in'] = np.append(data_['EV_SOC_in'], self.Car_SOC_T[i])
+                    data_['EV_SOC_out'] = np.append(data_['EV_SOC_out'], self.Car_SOC_start[i])
+                    data_['EV_C_max'] = np.append(data_['EV_C_max'], self.Car_C_max[i])
+                    data_['EV_P_char_max'] = np.append(data_['EV_P_char_max'], self.Car_P_charge[i])
+                    data_['EV_lambda_char'] = np.append(data_['EV_lambda_char'], self.Car_P_charge_lambda[i])
+                    self.Car_charge_flag[i] = 1
                 continue
 
-            if t//120 > self.Car_T_end[i] and self.Car_area_T[i] == self.Car_area_start[i]:
-                continue
-
-            if t//120 > self.Car_T_end[i] and self.Car_destination[i] == 0:
+            if t//30 > self.Car_T_end[i] and self.Car_destination[i] == 0:
                 self.Car_destination[i] = self.Car_area_start[i]
                 self.Car_route[i], _ = Taxi.destination_route_generate(self, dict_, i, t)
                 self.Car_next[i, 0] = np.sum(self.Car_route[i][0]) - self.Car_area_T[i]
+                for j in range(dict_['Road'].Road_num):
+                    if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
+                        dict_['Road'].Road_flow[j, t] += 1
+                        break
 
             # 评估充电需求,充电站充电
             if self.Car_charge_flag[i]:
@@ -136,7 +152,14 @@ class Taxi(Car):
             if self.Car_SOC_T[i] <= self.Car_SOC_warn[i]:
                 if self.Car_area_T[i] in dict_['CS'].CS_area:
                     self.Car_charge_flag[i] = True
-
+                    data_['EV_BUS'] = np.append(data_['EV_BUS'], dict_['area'].area_BUS[self.Car_area_T[i]])
+                    data_['EV_T_in'] = np.append(data_['EV_T_in'], t // 30)
+                    data_['EV_T_out'] = np.append(data_['EV_T_out'], t//30 + (self.Car_SOC_start[i]-self.Car_SOC_T[i])*self.Car_C_max[i]//self.Car_P_charge[i])
+                    data_['EV_SOC_in'] = np.append(data_['EV_SOC_in'], self.Car_SOC_T[i])
+                    data_['EV_SOC_out'] = np.append(data_['EV_SOC_out'], self.Car_SOC_start[i])
+                    data_['EV_C_max'] = np.append(data_['EV_C_max'], self.Car_C_max[i])
+                    data_['EV_P_char_max'] = np.append(data_['EV_P_char_max'], self.Car_P_charge[i])
+                    data_['EV_lambda_char'] = np.append(data_['EV_lambda_char'], self.Car_P_charge_lambda[i])
                     self.Car_SOC_T[i] = self.Car_SOC_T[i] + self.Car_P_charge[i]/self.Car_C_max[i]
                     continue
 
@@ -149,19 +172,24 @@ class Taxi(Car):
                 if self.Car_destination[i] == 0:
                     self.Car_route[i] = Taxi.charge_route_generate(self, dict_, i, t)
                     self.Car_next[i, 0] = np.sum(self.Car_route[i][0]) - self.Car_area_T[i]
+                    for j in range(dict_['Road'].Road_num):
+                        if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
+                            dict_['Road'].Road_flow[j, t] += 1
+                            break
 
             # 目的地选取
             if self.Car_destination[i] == 0:
                 Taxi.destination_generate(self, dict_, i)
                 self.Car_route[i],_ = Taxi.destination_route_generate(self, dict_, i, t)
                 self.Car_next[i,0] = np.sum(self.Car_route[i][0]) - self.Car_area_T[i]
+                for j in range(dict_['Road'].Road_num):
+                    if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
+                        dict_['Road'].Road_flow[j, t] += 1
+                        break
+
 
             # # 状态更新
             # self.Car_area_T[i] = ...
-            for j in range(dict_['Road'].Road_num):
-                if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
-                    dict_['Road'].Road_flow[j, t] += 1
-                    break
             for j in range(dict_['Road'].Road_num):
                 if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
                     beta = dict_['Road'].a_b_n[dict_['Road'].Road_grade[j] - 1][0] + \
@@ -176,6 +204,10 @@ class Taxi(Car):
                             break
                     break
             if self.Car_next[i,1] > 1:
+                for j in range(dict_['Road'].Road_num):
+                    if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
+                        dict_['Road'].Road_flow[j, t] -= 1
+                        break
                 self.Car_area_T[i] = self.Car_next[i,0]
                 self.Car_route[i] = np.delete(self.Car_route[i],0,0)
                 if len(self.Car_route[i]) == 0:
@@ -183,6 +215,10 @@ class Taxi(Car):
                     continue
                 self.Car_next[i,0] = np.sum(self.Car_route[i][0]) - self.Car_next[i,0]
                 self.Car_next[i,1] = 0
+                for j in range(dict_['Road'].Road_num):
+                    if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
+                        dict_['Road'].Road_flow[j, t] += 1
+                        break
 
 
 
@@ -206,15 +242,30 @@ class PrivateCar(Car):
         super().__init__(data_)
         self.Car_area_end = data_['Car_area_end']
 
-    def behavior(self, dict_, t):
+    def behavior(self, data_, dict_, t):
         for i in range(self.Car_num):
 
-            if t//120 == self.Car_T_start[i]:
+            if t/30 == self.Car_T_start[i]:
+                self.Car_SOC_T[i] = self.Car_SOC_start[i]
+                self.Car_charge_flag[i] = False
                 self.Car_destination[i] = self.Car_area_end[i]
-                self.Car_route[i], _ = Taxi.destination_route_generate(self, dict_, i, t)
-            if t//120 == self.Car_T_end[i]:
+                self.Car_route[i], _ = PrivateCar.destination_route_generate(self, dict_, i, t)
+                self.Car_next[i, 0] = np.sum(self.Car_route[i][0]) - self.Car_area_T[i]
+                for j in range(dict_['Road'].Road_num):
+                    if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
+                        dict_['Road'].Road_flow[j, t] += 1
+                        break
+
+            if t/30 == self.Car_T_end[i]:
+                self.Car_SOC_T[i] = self.Car_SOC_start[i]
+                self.Car_charge_flag[i] = False
                 self.Car_destination[i] = self.Car_area_start[i]
-                self.Car_route[i], _ = Taxi.destination_route_generate(self, dict_, i, t)
+                self.Car_route[i], _ = PrivateCar.destination_route_generate(self, dict_, i, t)
+                self.Car_next[i, 0] = np.sum(self.Car_route[i][0]) - self.Car_area_T[i]
+                for j in range(dict_['Road'].Road_num):
+                    if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
+                        dict_['Road'].Road_flow[j, t] += 1
+                        break
 
             # # 评估充电需求,充电站充电
             # if self.Car_charge_flag[i]:
@@ -239,11 +290,9 @@ class PrivateCar(Car):
             #         self.Car_next[i, 0] = np.sum(self.Car_route[i][0]) - self.Car_area_T[i]
 
             # 状态更新
-            if self.Car_destination[i] != 0:
-                for j in range(dict_['Road'].Road_num):
-                    if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
-                        dict_['Road'].Road_flow[j, t] += 1
-                        break
+            if self.Car_charge_flag[i]:
+                continue
+            elif self.Car_destination[i] != 0:
                 for j in range(dict_['Road'].Road_num):
                     if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
                         beta = dict_['Road'].a_b_n[dict_['Road'].Road_grade[j] - 1][0] + \
@@ -258,6 +307,10 @@ class PrivateCar(Car):
                                 break
                         break
                 if self.Car_next[i,1] > 1:
+                    for j in range(dict_['Road'].Road_num):
+                        if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
+                            dict_['Road'].Road_flow[j, t] -= 1
+                            break
                     self.Car_area_T[i] = self.Car_next[i,0]
                     self.Car_route[i] = np.delete(self.Car_route[i],0,0)
                     if len(self.Car_route[i]) == 0:
@@ -265,7 +318,20 @@ class PrivateCar(Car):
                         continue
                     self.Car_next[i,0] = np.sum(self.Car_route[i][0]) - self.Car_next[i,0]
                     self.Car_next[i,1] = 0
+                    for j in range(dict_['Road'].Road_num):
+                        if (self.Car_area_T[i] in dict_['Road'].Road_network[j]) and (self.Car_next[i, 0] in dict_['Road'].Road_network[j]):
+                            dict_['Road'].Road_flow[j, t] += 1
+                            break
+
 
             #  进入电动汽车需求响应充电模式
             else:
-                pass
+                data_['EV_BUS'] = np.append(data_['EV_BUS'], dict_['area'].area_BUS[self.Car_area_T[i]])
+                data_['EV_T_in'] = np.append(data_['EV_T_in'], t//30)
+                data_['EV_T_out'] = np.append(data_['EV_T_out'], self.Car_T_start[i]+96 if self.Car_area_T[i]==self.Car_area_start[i] else self.Car_T_end[i])
+                data_['EV_SOC_in'] = np.append(data_['EV_SOC_in'], self.Car_SOC_T[i])
+                data_['EV_SOC_out'] = np.append(data_['EV_SOC_out'], self.Car_SOC_start[i])
+                data_['EV_C_max'] = np.append(data_['EV_C_max'], self.Car_C_max[i])
+                data_['EV_P_char_max'] = np.append(data_['EV_P_char_max'], self.Car_P_charge[i])
+                data_['EV_lambda_char'] = np.append(data_['EV_lambda_char'], self.Car_P_charge_lambda[i])
+                self.Car_charge_flag[i] = True

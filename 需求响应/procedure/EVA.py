@@ -8,10 +8,10 @@ from 需求响应.procedure import show
 class EVA():
     def __init__(self, data_):
         self.EVA_P = None
-        self.EV_BUS = data_['EV_BUS']
+        self.EV_BUS = data_['EV_BUS'].astype(int)
         self.EV_num = len(self.EV_BUS)
-        self.EV_T_in = data_['EV_T_in']
-        self.EV_T_out = data_['EV_T_out']
+        self.EV_T_in = data_['EV_T_in'].astype(int)
+        self.EV_T_out = data_['EV_T_out'].astype(int)
         self.EV_SOC_in = data_['EV_SOC_in']
         self.EV_SOC_out = data_['EV_SOC_out']
         self.EV_C_max = data_['EV_C_max']
@@ -20,10 +20,10 @@ class EVA():
         self.EVA_BUS = np.unique(self.EV_BUS)
         self.EVA_num = len(self.EVA_BUS)
 
-        EVA_ub = np.zeros((self.EVA_num, data_['T']))
-        EVA_lb = np.zeros((self.EVA_num, data_['T']))
-        EVA_P_char_max = np.zeros((self.EVA_num, data_['T']))
-        EVA_C_out = np.zeros((self.EVA_num, data_['T']))  # 电动汽车离开时带走的电量
+        EVA_ub = np.zeros((self.EVA_num, data_['T']*2))
+        EVA_lb = np.zeros((self.EVA_num, data_['T']*2))
+        EVA_P_char_max = np.zeros((self.EVA_num, data_['T']*2))
+        EVA_C_out = np.zeros((self.EVA_num, data_['T']*2))  # 电动汽车离开时带走的电量
         for i in range(self.EV_num):
             P = self.EV_lambda_char[i]*self.EV_P_char_max[i]
             EVA_P_char_max[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]:self.EV_T_out[i]+1] += P

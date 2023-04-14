@@ -64,10 +64,10 @@ class DA_EVA():
             model.addConstrs(P_input[i, j] ==
                 quicksum(EVA_[l, j] for l in range(EVA_num) if EVA_BUS[l] == i) +
                 quicksum()
-                for i in range(dict_['PowerFlow'].Branch_num + 1))  # 节点0与上层电网相连接
+                for i in range(dict_['PowerFlow'].BUS_num + 1))  # 节点0与上层电网相连接
 
             # 功率平衡(待修改)
-            model.addConstr((quicksum(EDG_[m,j] for m in range(len(EDG_ub)))-quicksum(EVA_[n,j] for n in range(EVA_num))-ED.sum(0)[j]==0),name='PowerBalance')
+            model.addConstr((quicksum(P_input[i, j] for i in range(dict_['PowerFlow'].BUS_num))==0),name='PowerBalance')
 
             # 网络潮流约束
             for i in range(dict_['PowerFlow'].Branch_num):
