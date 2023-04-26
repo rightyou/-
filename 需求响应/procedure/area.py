@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class area():
+class Area():
     def __init__(self, data_):
         '''
         area 道路节点

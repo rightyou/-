@@ -15,6 +15,7 @@ class Car():
         Car_next 汽车将驶向的下一个节点以及进度
         Car_T_start 初始出行时刻
         Car_SOC_start初始SOC
+        Car_SOC_end充电完成SOC
         Car_area_T T时刻位置
         Car_SOC_T T时刻SOC
         Car_charge_flag 汽车接入充电桩
@@ -31,6 +32,7 @@ class Car():
         self.Car_area_T = data_['Car_area_start'].copy()
         self.Car_T_start = data_['Car_T_start']
         self.Car_SOC_start = data_['Car_SOC_start']
+        self.Car_SOC_end = data_['Car_SOC_end']
         self.Car_SOC_T = data_['Car_SOC_start'].copy()
         self.Car_SOC_warn = data_['Car_SOC_warn']
         self.Car_route = [[]for i in range(self.Car_num)]
@@ -115,26 +117,27 @@ class Taxi(Car):
         super().__init__(data_)
 
     def behavior(self, data_, dict_, t):
+        t_ = dict_['Param'].TT / dict_['Param'].T
         for i in range(self.Car_num):
-            if t//30 < self.Car_T_start[i]:
+            if t//t_ < self.Car_T_start[i]:
                 continue
-            if t//30 == self.Car_T_start[i]:
+            if t//t_ == self.Car_T_start[i]:
                 self.Car_charge_flag[i] = 0
 
-            if t//30 > self.Car_T_end[i] and self.Car_area_T[i] == self.Car_area_start[i]:
+            if t//t_ > self.Car_T_end[i] and self.Car_area_T[i] == self.Car_area_start[i]:
                 if not self.Car_charge_flag[i]:
                     data_['EV_BUS'] = np.append(data_['EV_BUS'], dict_['area'].area_BUS[self.Car_area_T[i]])
-                    data_['EV_T_in'] = np.append(data_['EV_T_in'], t // 30)
-                    data_['EV_T_out'] = np.append(data_['EV_T_out'], self.Car_T_start[i])
+                    data_['EV_T_in'] = np.append(data_['EV_T_in'], t // t_)
+                    data_['EV_T_out'] = np.append(data_['EV_T_out'], self.Car_T_start[i] if t//t_ == 0 else self.Car_T_start[i] + dict_['Param'].T)
                     data_['EV_SOC_in'] = np.append(data_['EV_SOC_in'], self.Car_SOC_T[i])
-                    data_['EV_SOC_out'] = np.append(data_['EV_SOC_out'], self.Car_SOC_start[i])
+                    data_['EV_SOC_out'] = np.append(data_['EV_SOC_out'], self.Car_SOC_end[i])
                     data_['EV_C_max'] = np.append(data_['EV_C_max'], self.Car_C_max[i])
                     data_['EV_P_char_max'] = np.append(data_['EV_P_char_max'], self.Car_P_charge[i])
                     data_['EV_lambda_char'] = np.append(data_['EV_lambda_char'], self.Car_P_charge_lambda[i])
                     self.Car_charge_flag[i] = 1
                 continue
 
-            if t//30 > self.Car_T_end[i] and self.Car_destination[i] == 0:
+            if t//t_ > self.Car_T_end[i] and self.Car_destination[i] == 0:
                 self.Car_destination[i] = self.Car_area_start[i]
                 self.Car_route[i], _ = Taxi.destination_route_generate(self, dict_, i, t)
                 self.Car_next[i, 0] = np.sum(self.Car_route[i][0]) - self.Car_area_T[i]
@@ -153,10 +156,12 @@ class Taxi(Car):
                 if self.Car_area_T[i] in dict_['CS'].CS_area:
                     self.Car_charge_flag[i] = True
                     data_['EV_BUS'] = np.append(data_['EV_BUS'], dict_['area'].area_BUS[self.Car_area_T[i]])
-                    data_['EV_T_in'] = np.append(data_['EV_T_in'], t // 30)
-                    data_['EV_T_out'] = np.append(data_['EV_T_out'], t//30 + (self.Car_SOC_start[i]-self.Car_SOC_T[i])*self.Car_C_max[i]//self.Car_P_charge[i])
+                    data_['EV_T_in'] = np.append(data_['EV_T_in'], t // t_)
+                    data_['EV_T_out'] = np.append(data_['EV_T_out'], t//t_ + (self.Car_SOC_end[i]-self.Car_SOC_T[i])*self.Car_C_max[i]//self.Car_P_charge[i])
+
+
                     data_['EV_SOC_in'] = np.append(data_['EV_SOC_in'], self.Car_SOC_T[i])
-                    data_['EV_SOC_out'] = np.append(data_['EV_SOC_out'], self.Car_SOC_start[i])
+                    data_['EV_SOC_out'] = np.append(data_['EV_SOC_out'], self.Car_SOC_end[i])
                     data_['EV_C_max'] = np.append(data_['EV_C_max'], self.Car_C_max[i])
                     data_['EV_P_char_max'] = np.append(data_['EV_P_char_max'], self.Car_P_charge[i])
                     data_['EV_lambda_char'] = np.append(data_['EV_lambda_char'], self.Car_P_charge_lambda[i])
@@ -243,10 +248,11 @@ class PrivateCar(Car):
         self.Car_area_end = data_['Car_area_end']
 
     def behavior(self, data_, dict_, t):
+        t_ = dict_['Param'].TT / dict_['Param'].T
         for i in range(self.Car_num):
 
-            if t/30 == self.Car_T_start[i]:
-                self.Car_SOC_T[i] = self.Car_SOC_start[i]
+            if t/t_ == self.Car_T_start[i]:
+                self.Car_SOC_T[i] = self.Car_SOC_end[i]
                 self.Car_charge_flag[i] = False
                 self.Car_destination[i] = self.Car_area_end[i]
                 self.Car_route[i], _ = PrivateCar.destination_route_generate(self, dict_, i, t)
@@ -256,8 +262,8 @@ class PrivateCar(Car):
                         dict_['Road'].Road_flow[j, t] += 1
                         break
 
-            if t/30 == self.Car_T_end[i]:
-                self.Car_SOC_T[i] = self.Car_SOC_start[i]
+            if t/t_ == self.Car_T_end[i]:
+                self.Car_SOC_T[i] = self.Car_SOC_end[i]
                 self.Car_charge_flag[i] = False
                 self.Car_destination[i] = self.Car_area_start[i]
                 self.Car_route[i], _ = PrivateCar.destination_route_generate(self, dict_, i, t)
@@ -327,10 +333,19 @@ class PrivateCar(Car):
             #  进入电动汽车需求响应充电模式
             else:
                 data_['EV_BUS'] = np.append(data_['EV_BUS'], dict_['area'].area_BUS[self.Car_area_T[i]])
-                data_['EV_T_in'] = np.append(data_['EV_T_in'], t//30)
-                data_['EV_T_out'] = np.append(data_['EV_T_out'], self.Car_T_start[i]+96 if self.Car_area_T[i]==self.Car_area_start[i] else self.Car_T_end[i])
+                data_['EV_T_in'] = np.append(data_['EV_T_in'], t//t_)
+
+                if self.Car_area_T[i] == self.Car_area_end[i]:
+                    T_out = self.Car_T_end[i]
+                else:
+                    if t//t_ == 0:
+                        T_out = self.Car_T_start[i]
+                    else:
+                        T_out = self.Car_T_start[i]+dict_['Param'].T
+                data_['EV_T_out'] = np.append(data_['EV_T_out'], T_out)
+
                 data_['EV_SOC_in'] = np.append(data_['EV_SOC_in'], self.Car_SOC_T[i])
-                data_['EV_SOC_out'] = np.append(data_['EV_SOC_out'], self.Car_SOC_start[i])
+                data_['EV_SOC_out'] = np.append(data_['EV_SOC_out'], self.Car_SOC_end[i])
                 data_['EV_C_max'] = np.append(data_['EV_C_max'], self.Car_C_max[i])
                 data_['EV_P_char_max'] = np.append(data_['EV_P_char_max'], self.Car_P_charge[i])
                 data_['EV_lambda_char'] = np.append(data_['EV_lambda_char'], self.Car_P_charge_lambda[i])

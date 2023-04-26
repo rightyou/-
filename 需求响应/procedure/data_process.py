@@ -17,8 +17,8 @@ def rand_data(data, variance, number):
 def read_PowerFlow_data(data_, file):
     data = pd.read_excel(file)
     data_['Branch_BUS'] = np.array((data['BUS1'],data['BUS2'])).T
-    data_['Branch_R'] = np.array(data['R'])
-    data_['Branch_X'] = np.array(data['X'])
+    data_['Branch_R'] = np.array(data['R']) / data_['RB']
+    data_['Branch_X'] = np.array(data['X']) / data_['RB']
     data_['Branch_B'] = np.array(data['B'])
     return data_
 
@@ -37,7 +37,7 @@ def read_EV_data(data_, file):
 def read_ED_data(data_, file):
     data = pd.read_excel(file)
     data_['ED_BUS'] = np.array(data['BUS'])
-    data_['EDBase'] = np.array(data.T.tail(data_['T']).T)
+    data_['EDBase'] = np.array(data.T.tail(data_['T']*2).T) / data_['SB']
     return data_
 
 def read_Price_data(data_, file):
@@ -48,12 +48,12 @@ def read_Price_data(data_, file):
 def read_EDGub_data(data_, file):
     data = pd.read_excel(file)
     data_['EDG_BUS'] = np.array(data['BUS'])
-    data_['EDG_ub'] = np.array(data.T.tail(data_['T']).T)
+    data_['EDG_ub'] = np.array(data.T.tail(data_['T']*2).T)
     return data_
 
 def read_EDGlb_data(data_, file):
     data = pd.read_excel(file)
-    data_['EDG_lb'] = np.array(data.T.tail(data_['T']).T)
+    data_['EDG_lb'] = np.array(data.T.tail(data_['T']*2).T)
     return data_
 
 def read_EDGPrice_data(data_, file):
@@ -91,28 +91,29 @@ def read_Taxi_data(data_, file):
             [data['C_max_variance'][i],data['P_variance'][i],data['T_start_variance'][i],data['T_end_variance'][i],data['P_charge_variance'][i],],
             number)),
 
-            np.around((rand_data([data['v'][i]],[data['v_variance'][i]], number)),1),
+            np.around((rand_data([data['SOC_start'][i],data['v'][i]],[data['SOC_start_variance'][i],data['v_variance'][i]], number)),1),
             np.random.choice(list(map(int,data['area_start'][i].split(','))),size=(number,1)),
-            np.random.choice(list(map(float,data['SOC_start'][i].split(','))),size=(number,1)),
+            np.random.choice(list(map(float,data['SOC_end'][i].split(','))),size=(number,1)),
             np.array(([[data['SOC_warn'][i], data['P_charge_lambda'][i]]] * number), ),
             ),axis=1)
         if i == 0:
             data_rand = rand
         else:
             data_rand = np.concatenate((data_rand,rand),0)
-    df = pd.DataFrame(data_rand, columns=['C_max', 'P', 'T_start', 'T_end', 'P_charge', 'v',  'area_start', 'SOC_start', 'SOC_warn', 'P_charge_lambda'])  # 按前面变量顺序排列
+    df = pd.DataFrame(data_rand, columns=['C_max', 'P', 'T_start', 'T_end', 'P_charge', 'SOC_start', 'v', 'area_start', 'SOC_end', 'SOC_warn', 'P_charge_lambda'])  # 按前面变量顺序排列
     df.to_excel('data/Taxi.xlsx', sheet_name='Sheet1', index=None)
 
     data = pd.read_excel('data/Taxi.xlsx')
-    data_['Car_C_max'] = np.array(data['C_max'])
-    data_['Car_P'] = np.array(data['P'])
+    data_['Car_C_max'] = np.array(data['C_max']) / data_['SB']
+    data_['Car_P'] = np.array(data['P']) / data_['SB']
     # data_['Car_type'] = data['type'].values
     data_['Car_area_start'] = np.array(data['area_start'])
     data_['Car_T_start'] = np.array(data['T_start'])
-    data_['Car_P_charge'] = np.array(data['P_charge'])
+    data_['Car_P_charge'] = np.array(data['P_charge']) / data_['SB']
     data_['Car_T_start'] = np.array(data['T_start'])
     data_['Car_v'] = np.array(data['v'])
     data_['Car_SOC_start'] = np.array(data['SOC_start'])
+    data_['Car_SOC_end'] = np.array(data['SOC_end'])
     data_['Car_SOC_warn'] = np.array(data['SOC_warn'])
     data_['P_charge_lambda'] = np.array(data['P_charge_lambda'])
     # data_['Car_area_end'] = np.array(data['area_end'])
@@ -132,9 +133,9 @@ def read_PrivateCar_data(data_, file):
             [data['C_max_variance'][i],data['P_variance'][i],data['T_start_variance'][i],data['T_end_variance'][i],data['P_charge_variance'][i],],
             number)),
 
-            np.around((rand_data([data['v'][i]],[data['v_variance'][i]], number)),1),
+            np.around((rand_data([data['SOC_start'][i],data['v'][i]],[data['SOC_start_variance'][i],data['v_variance'][i]], number)),1),
             np.random.choice(list(map(int,data['area_start'][i].split(','))),size=(number,1)),
-            np.random.choice(list(map(float,data['SOC_start'][i].split(','))),size=(number,1)),
+            np.random.choice(list(map(float,data['SOC_end'][i].split(','))),size=(number,1)),
             np.array(([[data['SOC_warn'][i], data['P_charge_lambda'][i]]] * number),),
             np.random.choice(list(map(float,data['Car_area_end'][i].split(','))),size=(number,1)),),
             axis=1)
@@ -142,19 +143,20 @@ def read_PrivateCar_data(data_, file):
             data_rand = rand
         else:
             data_rand = np.concatenate((data_rand,rand),0)
-    df = pd.DataFrame(data_rand, columns=['C_max', 'P', 'T_start', 'T_end', 'P_charge', 'v',  'area_start', 'SOC_start', 'SOC_warn', 'P_charge_lambda', 'Car_area_end'])  # 按前面变量顺序排列
+    df = pd.DataFrame(data_rand, columns=['C_max', 'P', 'T_start', 'T_end', 'P_charge', 'SOC_start', 'v',  'area_start', 'SOC_end', 'SOC_warn', 'P_charge_lambda', 'Car_area_end'])  # 按前面变量顺序排列
     df.to_excel('data/PrivateCar.xlsx', sheet_name='Sheet1', index=None)
 
     data = pd.read_excel('data/PrivateCar.xlsx')
-    data_['Car_C_max'] = np.array(data['C_max'])
-    data_['Car_P'] = np.array(data['P'])
+    data_['Car_C_max'] = np.array(data['C_max']) / data_['SB']
+    data_['Car_P'] = np.array(data['P']) / data_['SB']
     # data_['Car_type'] = data['type'].values
     data_['Car_area_start'] = np.array(data['area_start'])
     data_['Car_T_start'] = np.array(data['T_start'])
-    data_['Car_P_charge'] = np.array(data['P_charge'])
+    data_['Car_P_charge'] = np.array(data['P_charge']) / data_['SB']
     data_['Car_T_start'] = np.array(data['T_start'])
     data_['Car_v'] = np.array(data['v'])
     data_['Car_SOC_start'] = np.array(data['SOC_start'])
+    data_['Car_SOC_end'] = np.array(data['SOC_end'])
     data_['Car_SOC_warn'] = np.array(data['SOC_warn'])
     data_['P_charge_lambda'] = np.array(data['P_charge_lambda'])
     data_['Car_area_end'] = np.array(data['Car_area_end'])

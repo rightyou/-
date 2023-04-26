@@ -31,14 +31,17 @@ class EVA():
             if self.EV_T_out[i]-self.EV_T_in[i] < delta_T:
                 for j in range(self.EV_T_out[i]-self.EV_T_in[i]):
                     EVA_ub[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]+j+1:self.EV_T_out[i]+1] += P  # 实际时间与索引序号差一
-                EVA_lb[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]+1:self.EV_T_out[i]+1] = EVA_ub[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]+1:self.EV_T_out[i]+1]
-                EVA_C_out[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]),self.EV_T_out[i]+1] += P*(self.EV_T_out[i]-self.EV_T_in[i])
+                    EVA_lb[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]+j+1:self.EV_T_out[i]+1] += P
+                EVA_C_out[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]),self.EV_T_out[i]] += P*(self.EV_T_out[i]-self.EV_T_in[i])
             else:
                 for j in range(delta_T):
                     EVA_ub[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i]+j+1:self.EV_T_in[i]+delta_T+1] += P
                     EVA_ub[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_in[i] + delta_T+1:self.EV_T_out[i]+1] += P
                     EVA_lb[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_out[i]:self.EV_T_out[i]-j-1:-1] += P
-                EVA_C_out[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_out[i]+1] += EVA_lb[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_out[i]]
+                EVA_C_out[int(np.argwhere(self.EVA_BUS == self.EV_BUS[i])[0]), self.EV_T_out[i]] += P * delta_T
+
+
+
         self.EVA_ub = EVA_ub
         self.EVA_lb = EVA_lb
         self.EVA_P_char_max = EVA_P_char_max

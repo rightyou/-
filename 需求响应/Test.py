@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import networkx as nx
+import time
 
 from procedure.data_process import *
 from procedure.EVA import *
@@ -16,51 +17,58 @@ from procedure.area import *
 
 
 if __name__ == '__main__':
-    Param = Param()
+    param = Param()
+    UB = 10
+    SB = 10000
+    RB = 1
 
     data_ = {
-        'T': Param.T,
-        'TT': Param.TT,
-
-
+        'T': param.T,
+        'TT': param.TT,
+        'UB':UB,
+        'SB':SB,
+        'RB':RB
     }
     data_ = read_PowerFlow_data(data_, 'data/PowerFlow.xlsx')
-    PowerFlow = PowerFlow(data_)
+    powerflow = PowerFlow(data_)
     data_ = read_Price_data(data_, 'data/Price.xlsx')
 
     # data_ = read_EV_data(data_, 'data/EVA.xlsx')
     # EVA = EVA(data_)
     data_ = read_ED_data(data_, 'data/EDBase.xlsx')
-    ED = ED(data_)
+    ed = ED(data_)
     data_ = read_EDGub_data(data_, 'data/EDGub.xlsx')
     data_ = read_EDGlb_data(data_, 'data/EDGlb.xlsx')
     data_ = read_EDGPrice_data(data_, 'data/EDGPrice.xlsx')
-    EDG = EDG(data_)
+    edg = EDG(data_)
     data_ = read_Road_data(data_, 'data/Road.xlsx')
-    Road = Road(data_)
+    road = Road(data_)
     data_ = read_ChargingStation_data(data_, 'data/Charging station.xlsx')
-    CS = CS(data_)  # 充电站信息
+    cs = CS(data_)  # 充电站信息
     data_ = read_area_data(data_, 'data/area.xlsx')
-    area = area(data_)
+    area = Area(data_)
 
     dict_ = {
-        'Param': Param,
+        'Param': param,
         'Price': data_['Price'],
-        'PowerFlow': PowerFlow,
-        'ED': ED,
-        # 'EVA': EVA,
-        'EDG': EDG,
-        'Road': Road,
-        'CS': CS,
+        'PowerFlow': powerflow,
+        'ED': ed,
+        'EDG': edg,
+        'Road': road,
+        'CS': cs,
         'area': area,
     }
 
+
     L = {
-        'EVA_ub' : [],
-        'EVA_lb' : [],
-        'EVA_P_char_max' : [],
+        'EVA_ub': [],
+        'EVA_lb': [],
+        'EVA_P_char_max': [],
+        'EVA_C_out': [],
     }
-    for k in range(1000):
+    for k in range(3):
+        start = time.time()
+
         data = {
             'EV_BUS': np.array([]),
             'EV_T_in': np.array([]),
@@ -88,20 +96,18 @@ if __name__ == '__main__':
         for t in range(dict_['Param'].TT):
             Taxi_.behavior(data_, dict_, t)
             PrivateCar_.behavior(data_,dict_, t)
-            try:
+            if t != dict_['Param'].TT-1:
                 dict_['Road'].Road_flow[:, t+1] = dict_['Road'].Road_flow[:, t]
-            except:
+            else:
                 dict_['Road'].Road_flow = np.zeros((dict_['Road'].Road_num, data_['TT']))
 
         EVA_ = EVA(data_)
         L['EVA_ub'].append(EVA_.EVA_ub)
         L['EVA_lb'].append(EVA_.EVA_lb)
         L['EVA_P_char_max'].append(EVA_.EVA_P_char_max)
-
-
-        # DA_EVA = DA_EVA()
-        # DA_EVA.SP(dict_)
-        # dict_['EVA'].EV_distribution(dict_)
+        L['EVA_C_out'].append(EVA_.EVA_C_out)
+        end = time.time()
+        print(end - start)
 
 
         # G = nx.Graph()
@@ -120,8 +126,58 @@ if __name__ == '__main__':
         # for i in range(8):
         #     plt.subplot(2, 4, i+1)
         #     plt.title('NUM{}'.format(i+1))
-        #     plt.plot(t, EVA_.EVA_lb[i], t, EVA_.EVA_ub[i])
+        #     plt.plot(t, EVA_.EVA_lb[i], t, EVA_.EVA_ub[i], drawstyle='steps')
         #     # plt.plot(t,EVA.EV_P[i])
         # plt.show()
+
+
+
+    L['EVA_ub'] = np.mean(np.asarray(L['EVA_ub']), axis=0)
+    L['EVA_lb'] = np.mean(np.asarray(L['EVA_lb']), axis=0)
+    L['EVA_P_char_max'] = np.mean(np.asarray(L['EVA_P_char_max']), axis=0)
+    L['EVA_C_out'] = np.mean(np.asarray(L['EVA_C_out']), axis=0)
+    L['EVA_num'] = len(L['EVA_ub'])
+    L['EVA_BUS'] = np.arange(L['EVA_num'])
+
+
+    t = np.arange(0, 96*2, 1)
+    plt.figure()
+    for i in range(8):
+        plt.subplot(2, 4, i+1)
+        plt.title('NUM{}'.format(i+1))
+        plt.plot(t, L['EVA_lb'][i], t, L['EVA_ub'][i], drawstyle='steps')
+        # plt.plot(t,EVA.EV_P[i])
+    plt.show()
+
+
+    DA_EVA = DA_SP()
+    DA_EVA.SP(dict_, L)
+
+    L['EVA_C'] = np.zeros((len(L['EVA_P']), 96*2))
+    for i in range(len(L['EVA_P'])):
+        for j in range(96*2):
+            L['EVA_C_out_'] = sum(L['EVA_C_out'][i,:j])
+            L['EVA_C'][i, j] = sum(L['EVA_P'][i,:j]) - L['EVA_C_out_']
+
+
+    t = np.arange(0, 96 * 2, 1)
+    plt.figure()
+    for i in range(8):
+        plt.subplot(2, 4, i + 1)
+        plt.title('NUM{}'.format(i + 1))
+        plt.plot(t, L['EVA_ub'][i]+dict_['ED'].EDBase[i], t, L['EVA_C'][i]+dict_['ED'].EDBase[i], drawstyle='steps')
+        # plt.plot(t,EVA.EV_P[i])
+    plt.show()
+
+    t = np.arange(0, 96*2, 1)
+    plt.figure()
+    for i in range(8):
+        plt.subplot(2, 4, i+1)
+        plt.title('NUM{}'.format(i+1))
+        plt.plot(t, L['EVA_lb'][i], t, L['EVA_ub'][i], t, L['EVA_C'][i], drawstyle='steps')
+        # plt.plot(t,EVA.EV_P[i])
+    plt.show()
+
+
 
     pass
