@@ -8,6 +8,7 @@ from procedure.EVA import *
 from procedure.ED import *
 from procedure.Param import *
 from procedure.DA import *
+from procedure.ID import *
 from procedure.PowerFlow import *
 from procedure.EDG import *
 from procedure.Road_network import *
@@ -18,39 +19,33 @@ from procedure.area import *
 
 if __name__ == '__main__':
     param = Param()
-    UB = 10
-    SB = 10000
-    RB = 1
 
-    data_ = {
+    DATA = {
         'T': param.T,
         'TT': param.TT,
-        'UB':UB,
-        'SB':SB,
-        'RB':RB
+        'UB': param.UB,
+        'SB': param.SB,
+        'RB': param.RB,
     }
-    data_ = read_PowerFlow_data(data_, 'data/PowerFlow.xlsx')
-    powerflow = PowerFlow(data_)
-    data_ = read_Price_data(data_, 'data/Price.xlsx')
+    DATA = read_PowerFlow_data(DATA, 'data/PowerFlow.xlsx')
+    powerflow = PowerFlow(DATA)
+    DATA = read_Price_data(DATA, 'data/Price.xlsx')
+    DATA = read_ED_data(DATA, 'data/EDBase.xlsx')
+    ed = ED(DATA)
+    DATA = read_EDGub_data(DATA, 'data/EDGub.xlsx')
+    DATA = read_EDGlb_data(DATA, 'data/EDGlb.xlsx')
+    DATA = read_EDGPrice_data(DATA, 'data/EDGPrice.xlsx')
+    edg = EDG(DATA)
+    DATA = read_Road_data(DATA, 'data/Road.xlsx')
+    road = Road(DATA)
+    DATA = read_ChargingStation_data(DATA, 'data/Charging station.xlsx')
+    cs = CS(DATA)  # 充电站信息
+    DATA = read_area_data(DATA, 'data/area.xlsx')
+    area = Area(DATA)
 
-    # data_ = read_EV_data(data_, 'data/EVA.xlsx')
-    # EVA = EVA(data_)
-    data_ = read_ED_data(data_, 'data/EDBase.xlsx')
-    ed = ED(data_)
-    data_ = read_EDGub_data(data_, 'data/EDGub.xlsx')
-    data_ = read_EDGlb_data(data_, 'data/EDGlb.xlsx')
-    data_ = read_EDGPrice_data(data_, 'data/EDGPrice.xlsx')
-    edg = EDG(data_)
-    data_ = read_Road_data(data_, 'data/Road.xlsx')
-    road = Road(data_)
-    data_ = read_ChargingStation_data(data_, 'data/Charging station.xlsx')
-    cs = CS(data_)  # 充电站信息
-    data_ = read_area_data(data_, 'data/area.xlsx')
-    area = Area(data_)
-
-    dict_ = {
+    DICT = {
         'Param': param,
-        'Price': data_['Price'],
+        'Price': DATA['Price'],
         'PowerFlow': powerflow,
         'ED': ed,
         'EDG': edg,
@@ -66,7 +61,8 @@ if __name__ == '__main__':
         'EVA_P_char_max': [],
         'EVA_C_out': [],
     }
-    for k in range(3):
+
+    for k in range(10):
         start = time.time()
 
         data = {
@@ -79,33 +75,33 @@ if __name__ == '__main__':
             'EV_P_char_max': np.array([]),
             'EV_lambda_char': np.array([]),
         }
-        data_.update(data)
+        DATA.update(data)
 
-        data_ = read_Taxi_data(data_, 'data/Taxi_example.xlsx')
-        Taxi_ = Taxi(data_)
-        data_ = read_PrivateCar_data(data_, 'data/PrivateCar_example.xlsx')
-        PrivateCar_ = PrivateCar(data_)
+        DATA = read_Taxi_data(DATA, 'data/Taxi_example.xlsx')
+        Taxi_ = Taxi(DATA)
+        DATA = read_PrivateCar_data(DATA, 'data/PrivateCar_example.xlsx')
+        PrivateCar_ = PrivateCar(DATA)
 
         d = {
             'Taxi': Taxi_,
             'PrivateCar': PrivateCar_,
         }
-        dict_.update(d)
+        DICT.update(d)
 
 
-        for t in range(dict_['Param'].TT):
-            Taxi_.behavior(data_, dict_, t)
-            PrivateCar_.behavior(data_,dict_, t)
-            if t != dict_['Param'].TT-1:
-                dict_['Road'].Road_flow[:, t+1] = dict_['Road'].Road_flow[:, t]
-            else:
-                dict_['Road'].Road_flow = np.zeros((dict_['Road'].Road_num, data_['TT']))
+        for t in range(DICT['Param'].TT):
+            Taxi_.behavior(DATA, DICT, t)
+            PrivateCar_.behavior(DATA, DICT, t)
+            if t != DICT['Param'].TT-1:
+                DICT['Road'].Road_flow[:, t + 1] = DICT['Road'].Road_flow[:, t]
+            # else:
+            #     DICT['Road'].Road_flow = np.zeros((DICT['Road'].Road_num, DATA['TT']))
 
-        EVA_ = EVA(data_)
-        L['EVA_ub'].append(EVA_.EVA_ub)
-        L['EVA_lb'].append(EVA_.EVA_lb)
-        L['EVA_P_char_max'].append(EVA_.EVA_P_char_max)
-        L['EVA_C_out'].append(EVA_.EVA_C_out)
+        eva = EVA(DATA)
+        L['EVA_ub'].append(eva.EVA_ub)
+        L['EVA_lb'].append(eva.EVA_lb)
+        L['EVA_P_char_max'].append(eva.EVA_P_char_max)
+        L['EVA_C_out'].append(eva.EVA_C_out)
         end = time.time()
         print(end - start)
 
@@ -126,7 +122,7 @@ if __name__ == '__main__':
         # for i in range(8):
         #     plt.subplot(2, 4, i+1)
         #     plt.title('NUM{}'.format(i+1))
-        #     plt.plot(t, EVA_.EVA_lb[i], t, EVA_.EVA_ub[i], drawstyle='steps')
+        #     plt.plot(t, eva.EVA_lb[i], t, eva.EVA_ub[i], drawstyle='steps')
         #     # plt.plot(t,EVA.EV_P[i])
         # plt.show()
 
@@ -140,43 +136,132 @@ if __name__ == '__main__':
     L['EVA_BUS'] = np.arange(L['EVA_num'])
 
 
-    t = np.arange(0, 96*2, 1)
-    plt.figure()
-    for i in range(8):
-        plt.subplot(2, 4, i+1)
-        plt.title('NUM{}'.format(i+1))
-        plt.plot(t, L['EVA_lb'][i], t, L['EVA_ub'][i], drawstyle='steps')
-        # plt.plot(t,EVA.EV_P[i])
-    plt.show()
+    # t = np.arange(0, 96, 1)
+    # plt.figure()
+    # for i in range(4):
+    #     plt.subplot(2, 2, i+1)
+    #     plt.title('NUM{}'.format(i+1), fontsize=7)
+    #     plt.xlabel('t', fontsize=5, loc='right')
+    #     plt.ylabel('d_EVA', fontsize=5, loc='top')
+    #     plt.xticks(fontsize=5)
+    #     plt.yticks(fontsize=5)
+    #     plt.plot(t, L['EVA_lb'][i,:96] * param.SB, drawstyle='steps', label='EVA_lb')
+    #     plt.plot(t, L['EVA_ub'][i,:96] * param.SB, drawstyle='steps', label='EVA_ub')
+    #     plt.legend(loc='upper right', fontsize=5)
+    # # plt.show()
+    # plt.savefig('figure1.svg', dpi=300)
 
 
-    DA_EVA = DA_SP()
-    DA_EVA.SP(dict_, L)
+    # 日前调度
+    DA_EVA = DA()
+    DA_EVA.SP(DICT, L)
 
     L['EVA_C'] = np.zeros((len(L['EVA_P']), 96*2))
+    disordered_charging = np.zeros((len(L['EVA_P']), 96*2))
     for i in range(len(L['EVA_P'])):
         for j in range(96*2):
-            L['EVA_C_out_'] = sum(L['EVA_C_out'][i,:j])
-            L['EVA_C'][i, j] = sum(L['EVA_P'][i,:j]) - L['EVA_C_out_']
+            # L['EVA_C_out_'] = sum(L['EVA_C_out'][i,:j])
+            L['EVA_C'][i, j] = sum(L['EVA_P'][i,:j] - L['EVA_C_out'][i,:j])
+            disordered_charging[i, j] = L['EVA_ub'][i, j] - L['EVA_ub'][i, j-1]
 
 
-    t = np.arange(0, 96 * 2, 1)
+    # t = np.arange(0, 96, 1)
+    # plt.figure()
+    # # plt.title('', fontsize=7)
+    # plt.xlabel('t', fontsize=5, loc='right')
+    # plt.ylabel('Demand', fontsize=5, loc='top')
+    # plt.xticks(fontsize=5)
+    # plt.yticks(fontsize=5)
+    # plt.plot(t, (disordered_charging.sum(0)[:96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB, drawstyle='steps', label='disordered_charging')
+    # plt.plot(t, (L['EVA_P'].sum(0)[:96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB, drawstyle='steps', label='ordered_charging')
+    # plt.legend(loc='upper right', fontsize=5)
+    # plt.show()
+    # # plt.savefig('figure2.svg', dpi=300)
+
+    # t = np.arange(0, 96, 1)
+    # plt.figure()
+    # for i in range(4):
+    #     plt.subplot(2, 2, i+1)
+    #     plt.title('NUM{}'.format(i+1), fontsize=7)
+    #     plt.xlabel('t', fontsize=5, loc='right')
+    #     plt.ylabel('d_EVA', fontsize=5, loc='top')
+    #     plt.xticks(fontsize=5)
+    #     plt.yticks(fontsize=5)
+    #     plt.plot(t, L['EVA_lb'][i,:96] * param.SB, drawstyle='steps', label='EVA_lb')
+    #     plt.plot(t, L['EVA_ub'][i,:96] * param.SB, drawstyle='steps', label='EVA_ub')
+    #     plt.plot(t, L['EVA_C'][i,:96] * param.SB, drawstyle='steps', label='EVA_C')
+    #     plt.legend(loc='upper right', fontsize=5)
+    # plt.show()
+    # # plt.savefig('figure3.svg', dpi=300)
+
+
+    DICT['EVA'] = eva
+    # 日内调度
+    id = ID()
+    id.SP(DICT, L)
+
+    DICT['EVA'].EV_distribution(DICT)
+
+    # t = np.arange(0, 96, 1)
+    # plt.figure()
+    # for i in range(8):
+    #     plt.subplot(2, 4, i+1)
+    #     plt.title('NUM{}'.format(i+1), fontsize=7)
+    #     plt.xlabel('t', fontsize=5, loc='right')
+    #     plt.ylabel('d_EVA', fontsize=5, loc='top')
+    #     plt.xticks(fontsize=5)
+    #     plt.yticks(fontsize=5)
+    #     plt.plot(t, L['EVA_lb'][i,:96] * param.SB, drawstyle='steps', label='DA_EVA_lb')
+    #     plt.plot(t, L['EVA_ub'][i,:96] * param.SB, drawstyle='steps', label='DA_EVA_ub')
+    #     plt.plot(t, DICT['EVA'].EVA_lb[i,:96] * param.SB, drawstyle='steps', label='ID_EVA_lb')
+    #     plt.plot(t, DICT['EVA'].EVA_ub[i,:96] * param.SB, drawstyle='steps', label='ID_EVA_ub')
+    #     plt.legend(loc='upper right', fontsize=5)
+    # plt.show()
+    # # plt.savefig('figure3.svg', dpi=300)
+
+    # t = np.arange(0, 96, 1)
+    # plt.figure()
+    # for i in range(8):
+    #     plt.subplot(2, 4, i + 1)
+    #     plt.title('NUM{}'.format(i + 1), fontsize=7)
+    #     plt.xlabel('t', fontsize=5, loc='right')
+    #     plt.ylabel('d_EVA', fontsize=5, loc='top')
+    #     plt.xticks(fontsize=5)
+    #     plt.yticks(fontsize=5)
+    #     plt.plot(t, L['EVA_P'][i, :96] * param.SB, drawstyle='steps', label='DA')
+    #     plt.plot(t, DICT['EVA'].EVA_P[i, :96] * param.SB, drawstyle='steps', label='ID')
+    #     plt.legend(loc='upper right', fontsize=5)
+    # plt.show()
+    # # plt.savefig('figure3.svg', dpi=300)
+
+    t = np.arange(0, 96, 1)
     plt.figure()
     for i in range(8):
         plt.subplot(2, 4, i + 1)
-        plt.title('NUM{}'.format(i + 1))
-        plt.plot(t, L['EVA_ub'][i]+dict_['ED'].EDBase[i], t, L['EVA_C'][i]+dict_['ED'].EDBase[i], drawstyle='steps')
-        # plt.plot(t,EVA.EV_P[i])
+        plt.title('NUM{}'.format(i + 1), fontsize=7)
+        plt.xlabel('t', fontsize=5, loc='right')
+        plt.ylabel('d_EVA', fontsize=5, loc='top')
+        plt.xticks(fontsize=5)
+        plt.yticks(fontsize=5)
+        plt.plot(t, L['EVA_C'][i, :96] * param.SB, drawstyle='steps', label='DA')
+        plt.plot(t, DICT['EVA'].EVA_C[i, :96] * param.SB, drawstyle='steps', label='ID')
+        plt.legend(loc='upper right', fontsize=5)
     plt.show()
+    # plt.savefig('figure3.svg', dpi=300)
 
-    t = np.arange(0, 96*2, 1)
+    t = np.arange(0, 96, 1)
     plt.figure()
-    for i in range(8):
-        plt.subplot(2, 4, i+1)
-        plt.title('NUM{}'.format(i+1))
-        plt.plot(t, L['EVA_lb'][i], t, L['EVA_ub'][i], t, L['EVA_C'][i], drawstyle='steps')
-        # plt.plot(t,EVA.EV_P[i])
+    for i in range(DICT['EVA'].EV_num):
+        plt.subplot(2, 5, DICT['EVA'].EV_BUS[i]+1)
+        plt.title('NUM{}'.format(i + 1), fontsize=7)
+        plt.xlabel('t', fontsize=5, loc='right')
+        plt.ylabel('d_EVA', fontsize=5, loc='top')
+        plt.xticks(fontsize=5)
+        plt.yticks(fontsize=5)
+        plt.plot(t, DICT['EVA'].EV_P[i, :96] * param.SB, drawstyle='steps')
     plt.show()
+    # plt.savefig('figure3.svg', dpi=300)
+
 
 
 
