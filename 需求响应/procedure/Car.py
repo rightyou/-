@@ -25,6 +25,7 @@ class Car():
         self.Car_C_max = DATA['Car_C_max']
         self.Car_num = len(self.Car_C_max)
         self.Car_P_charge = DATA['Car_P_charge']
+        self.Car_P_discharge = DATA['Car_P_discharge']
         self.Car_P = DATA['Car_P']
         self.Car_v = DATA['Car_v']
         self.Car_area_start = DATA['Car_area_start']
@@ -132,7 +133,8 @@ class Taxi(Car):
                     DATA['EV_SOC_in'] = np.append(DATA['EV_SOC_in'], self.Car_SOC_T[i])
                     DATA['EV_SOC_out'] = np.append(DATA['EV_SOC_out'], self.Car_SOC_end[i])
                     DATA['EV_C_max'] = np.append(DATA['EV_C_max'], self.Car_C_max[i])
-                    DATA['EV_P_char_max'] = np.append(DATA['EV_P_char_max'], self.Car_P_charge[i])
+                    DATA['EV_P_dischar_max'] = np.append(DATA['EV_P_dischar_max'], self.Car_P_discharge[i] * DATA['TT'] / DATA['T'])
+                    DATA['EV_P_char_max'] = np.append(DATA['EV_P_char_max'], self.Car_P_charge[i] * DATA['TT'] / DATA['T'])
                     DATA['EV_lambda_char'] = np.append(DATA['EV_lambda_char'], self.Car_P_charge_lambda[i])
                     self.Car_charge_flag[i] = 1
                 continue
@@ -163,7 +165,8 @@ class Taxi(Car):
                     DATA['EV_SOC_in'] = np.append(DATA['EV_SOC_in'], self.Car_SOC_T[i])
                     DATA['EV_SOC_out'] = np.append(DATA['EV_SOC_out'], self.Car_SOC_end[i])
                     DATA['EV_C_max'] = np.append(DATA['EV_C_max'], self.Car_C_max[i])
-                    DATA['EV_P_char_max'] = np.append(DATA['EV_P_char_max'], self.Car_P_charge[i])
+                    DATA['EV_P_dischar_max'] = np.append(DATA['EV_P_dischar_max'], self.Car_P_discharge[i] * DATA['TT'] / DATA['T'])
+                    DATA['EV_P_char_max'] = np.append(DATA['EV_P_char_max'], self.Car_P_charge[i] * DATA['TT'] / DATA['T'])
                     DATA['EV_lambda_char'] = np.append(DATA['EV_lambda_char'], self.Car_P_charge_lambda[i])
                     self.Car_SOC_T[i] = self.Car_SOC_T[i] + self.Car_P_charge[i]/self.Car_C_max[i]
                     continue
@@ -347,7 +350,8 @@ class PrivateCar(Car):
                 DATA['EV_SOC_in'] = np.append(DATA['EV_SOC_in'], self.Car_SOC_T[i])
                 DATA['EV_SOC_out'] = np.append(DATA['EV_SOC_out'], self.Car_SOC_end[i])
                 DATA['EV_C_max'] = np.append(DATA['EV_C_max'], self.Car_C_max[i])
-                DATA['EV_P_char_max'] = np.append(DATA['EV_P_char_max'], self.Car_P_charge[i])
+                DATA['EV_P_dischar_max'] = np.append(DATA['EV_P_dischar_max'], self.Car_P_discharge[i] * DATA['TT'] / DATA['T'])
+                DATA['EV_P_char_max'] = np.append(DATA['EV_P_char_max'], self.Car_P_charge[i] * DATA['TT'] / DATA['T'])
                 DATA['EV_lambda_char'] = np.append(DATA['EV_lambda_char'], self.Car_P_charge_lambda[i])
                 self.Car_charge_flag[i] = True
 

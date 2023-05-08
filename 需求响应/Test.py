@@ -59,6 +59,7 @@ if __name__ == '__main__':
         'EVA_ub': [],
         'EVA_lb': [],
         'EVA_P_char_max': [],
+        'EVA_P_dischar_max': [],
         'EVA_C_out': [],
     }
 
@@ -73,6 +74,7 @@ if __name__ == '__main__':
             'EV_SOC_out': np.array([]),
             'EV_C_max': np.array([]),
             'EV_P_char_max': np.array([]),
+            'EV_P_dischar_max': np.array([]),
             'EV_lambda_char': np.array([]),
         }
         DATA.update(data)
@@ -101,6 +103,7 @@ if __name__ == '__main__':
         L['EVA_ub'].append(eva.EVA_ub)
         L['EVA_lb'].append(eva.EVA_lb)
         L['EVA_P_char_max'].append(eva.EVA_P_char_max)
+        L['EVA_P_dischar_max'].append(eva.EVA_P_dischar_max)
         L['EVA_C_out'].append(eva.EVA_C_out)
         end = time.time()
         print(end - start)
@@ -131,25 +134,26 @@ if __name__ == '__main__':
     L['EVA_ub'] = np.mean(np.asarray(L['EVA_ub']), axis=0)
     L['EVA_lb'] = np.mean(np.asarray(L['EVA_lb']), axis=0)
     L['EVA_P_char_max'] = np.mean(np.asarray(L['EVA_P_char_max']), axis=0)
+    L['EVA_P_dischar_max'] = np.mean(np.asarray(L['EVA_P_dischar_max']), axis=0)
     L['EVA_C_out'] = np.mean(np.asarray(L['EVA_C_out']), axis=0)
     L['EVA_num'] = len(L['EVA_ub'])
     L['EVA_BUS'] = np.arange(L['EVA_num'])
 
 
-    # t = np.arange(0, 96, 1)
-    # plt.figure()
-    # for i in range(4):
-    #     plt.subplot(2, 2, i+1)
-    #     plt.title('NUM{}'.format(i+1), fontsize=7)
-    #     plt.xlabel('t', fontsize=5, loc='right')
-    #     plt.ylabel('d_EVA', fontsize=5, loc='top')
-    #     plt.xticks(fontsize=5)
-    #     plt.yticks(fontsize=5)
-    #     plt.plot(t, L['EVA_lb'][i,:96] * param.SB, drawstyle='steps', label='EVA_lb')
-    #     plt.plot(t, L['EVA_ub'][i,:96] * param.SB, drawstyle='steps', label='EVA_ub')
-    #     plt.legend(loc='upper right', fontsize=5)
-    # # plt.show()
-    # plt.savefig('figure1.svg', dpi=300)
+    t = np.arange(0, 96, 1)
+    plt.figure()
+    for i in range(8):
+        plt.subplot(2, 4, i+1)
+        plt.title('NUM{}'.format(i+1), fontsize=7)
+        plt.xlabel('t', fontsize=5, loc='right')
+        plt.ylabel('d_EVA', fontsize=5, loc='top')
+        plt.xticks(fontsize=5)
+        plt.yticks(fontsize=5)
+        plt.plot(t, L['EVA_lb'][i,:96] * param.SB, drawstyle='steps', label='EVA_lb')
+        plt.plot(t, L['EVA_ub'][i,:96] * param.SB, drawstyle='steps', label='EVA_ub')
+        plt.legend(loc='upper right', fontsize=5)
+    # plt.show()
+    plt.savefig('figure1.svg', dpi=300)
 
 
     # 日前调度
@@ -165,74 +169,76 @@ if __name__ == '__main__':
             disordered_charging[i, j] = L['EVA_ub'][i, j] - L['EVA_ub'][i, j-1]
 
 
-    # t = np.arange(0, 96, 1)
-    # plt.figure()
-    # # plt.title('', fontsize=7)
-    # plt.xlabel('t', fontsize=5, loc='right')
-    # plt.ylabel('Demand', fontsize=5, loc='top')
-    # plt.xticks(fontsize=5)
-    # plt.yticks(fontsize=5)
-    # plt.plot(t, (disordered_charging.sum(0)[:96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB, drawstyle='steps', label='disordered_charging')
-    # plt.plot(t, (L['EVA_P'].sum(0)[:96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB, drawstyle='steps', label='ordered_charging')
-    # plt.legend(loc='upper right', fontsize=5)
-    # plt.show()
-    # # plt.savefig('figure2.svg', dpi=300)
-
-    # t = np.arange(0, 96, 1)
-    # plt.figure()
-    # for i in range(4):
-    #     plt.subplot(2, 2, i+1)
-    #     plt.title('NUM{}'.format(i+1), fontsize=7)
-    #     plt.xlabel('t', fontsize=5, loc='right')
-    #     plt.ylabel('d_EVA', fontsize=5, loc='top')
-    #     plt.xticks(fontsize=5)
-    #     plt.yticks(fontsize=5)
-    #     plt.plot(t, L['EVA_lb'][i,:96] * param.SB, drawstyle='steps', label='EVA_lb')
-    #     plt.plot(t, L['EVA_ub'][i,:96] * param.SB, drawstyle='steps', label='EVA_ub')
-    #     plt.plot(t, L['EVA_C'][i,:96] * param.SB, drawstyle='steps', label='EVA_C')
-    #     plt.legend(loc='upper right', fontsize=5)
-    # plt.show()
-    # # plt.savefig('figure3.svg', dpi=300)
-
 
     DICT['EVA'] = eva
     # 日内调度
     id = ID()
+    # for t in range(param.T):
     id.SP(DICT, L)
-
     DICT['EVA'].EV_distribution(DICT)
 
-    # t = np.arange(0, 96, 1)
-    # plt.figure()
-    # for i in range(8):
-    #     plt.subplot(2, 4, i+1)
-    #     plt.title('NUM{}'.format(i+1), fontsize=7)
-    #     plt.xlabel('t', fontsize=5, loc='right')
-    #     plt.ylabel('d_EVA', fontsize=5, loc='top')
-    #     plt.xticks(fontsize=5)
-    #     plt.yticks(fontsize=5)
-    #     plt.plot(t, L['EVA_lb'][i,:96] * param.SB, drawstyle='steps', label='DA_EVA_lb')
-    #     plt.plot(t, L['EVA_ub'][i,:96] * param.SB, drawstyle='steps', label='DA_EVA_ub')
-    #     plt.plot(t, DICT['EVA'].EVA_lb[i,:96] * param.SB, drawstyle='steps', label='ID_EVA_lb')
-    #     plt.plot(t, DICT['EVA'].EVA_ub[i,:96] * param.SB, drawstyle='steps', label='ID_EVA_ub')
-    #     plt.legend(loc='upper right', fontsize=5)
-    # plt.show()
-    # # plt.savefig('figure3.svg', dpi=300)
 
-    # t = np.arange(0, 96, 1)
-    # plt.figure()
-    # for i in range(8):
-    #     plt.subplot(2, 4, i + 1)
-    #     plt.title('NUM{}'.format(i + 1), fontsize=7)
-    #     plt.xlabel('t', fontsize=5, loc='right')
-    #     plt.ylabel('d_EVA', fontsize=5, loc='top')
-    #     plt.xticks(fontsize=5)
-    #     plt.yticks(fontsize=5)
-    #     plt.plot(t, L['EVA_P'][i, :96] * param.SB, drawstyle='steps', label='DA')
-    #     plt.plot(t, DICT['EVA'].EVA_P[i, :96] * param.SB, drawstyle='steps', label='ID')
-    #     plt.legend(loc='upper right', fontsize=5)
+    t = np.arange(0, 96, 1)
+    plt.figure()
+    # plt.title('', fontsize=7)
+    plt.xlabel('t', fontsize=5, loc='right')
+    plt.ylabel('Demand', fontsize=5, loc='top')
+    plt.xticks(fontsize=5)
+    plt.yticks(fontsize=5)
+    plt.plot(t, (disordered_charging.sum(0)[:96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB, drawstyle='steps', label='disordered_charging')
+    plt.plot(t, (L['EVA_P'].sum(0)[:96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB, drawstyle='steps', label='ordered_charging')
+    plt.legend(loc='upper right', fontsize=5)
     # plt.show()
-    # # plt.savefig('figure3.svg', dpi=300)
+    plt.savefig('figure2.svg', dpi=300)
+
+    t = np.arange(0, 96, 1)
+    plt.figure()
+    for i in range(8):
+        plt.subplot(2, 4, i+1)
+        plt.title('NUM{}'.format(i+1), fontsize=7)
+        plt.xlabel('t', fontsize=5, loc='right')
+        plt.ylabel('d_EVA', fontsize=5, loc='top')
+        plt.xticks(fontsize=5)
+        plt.yticks(fontsize=5)
+        plt.plot(t, L['EVA_lb'][i,:96] * param.SB, drawstyle='steps', label='EVA_lb')
+        plt.plot(t, L['EVA_ub'][i,:96] * param.SB, drawstyle='steps', label='EVA_ub')
+        plt.plot(t, L['EVA_C'][i,:96] * param.SB, drawstyle='steps', label='EVA_C')
+        plt.legend(loc='upper right', fontsize=5)
+    # plt.show()
+    plt.savefig('figure3.svg', dpi=300)
+
+
+    t = np.arange(0, 96, 1)
+    plt.figure()
+    for i in range(8):
+        plt.subplot(2, 4, i+1)
+        plt.title('NUM{}'.format(i+1), fontsize=7)
+        plt.xlabel('t', fontsize=5, loc='right')
+        plt.ylabel('d_EVA', fontsize=5, loc='top')
+        plt.xticks(fontsize=5)
+        plt.yticks(fontsize=5)
+        plt.plot(t, L['EVA_lb'][i,:96] * param.SB, drawstyle='steps', label='DA_EVA_lb')
+        plt.plot(t, L['EVA_ub'][i,:96] * param.SB, drawstyle='steps', label='DA_EVA_ub')
+        plt.plot(t, DICT['EVA'].EVA_lb[i,:96] * param.SB, drawstyle='steps', label='ID_EVA_lb')
+        plt.plot(t, DICT['EVA'].EVA_ub[i,:96] * param.SB, drawstyle='steps', label='ID_EVA_ub')
+        plt.legend(loc='upper right', fontsize=5)
+    # plt.show()
+    plt.savefig('figure4.svg', dpi=300)
+
+    t = np.arange(0, 96, 1)
+    plt.figure()
+    for i in range(8):
+        plt.subplot(2, 4, i + 1)
+        plt.title('NUM{}'.format(i + 1), fontsize=7)
+        plt.xlabel('t', fontsize=5, loc='right')
+        plt.ylabel('Demand', fontsize=5, loc='top')
+        plt.xticks(fontsize=5)
+        plt.yticks(fontsize=5)
+        plt.plot(t, (L['EVA_C'][i, :96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB, drawstyle='steps', label='DA')
+        plt.plot(t, (DICT['EVA'].EVA_C[i, :96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB, drawstyle='steps', label='ID')
+        plt.legend(loc='upper right', fontsize=5)
+    # plt.show()
+    plt.savefig('figure5.svg', dpi=300)
 
     t = np.arange(0, 96, 1)
     plt.figure()
@@ -246,21 +252,40 @@ if __name__ == '__main__':
         plt.plot(t, L['EVA_C'][i, :96] * param.SB, drawstyle='steps', label='DA')
         plt.plot(t, DICT['EVA'].EVA_C[i, :96] * param.SB, drawstyle='steps', label='ID')
         plt.legend(loc='upper right', fontsize=5)
-    plt.show()
-    # plt.savefig('figure3.svg', dpi=300)
+    # plt.show()
+    plt.savefig('figure6.svg', dpi=300)
 
     t = np.arange(0, 96, 1)
     plt.figure()
-    for i in range(DICT['EVA'].EV_num):
-        plt.subplot(2, 5, DICT['EVA'].EV_BUS[i]+1)
+    for i in range(9):
+        plt.subplot(2, 5, i + 1)
         plt.title('NUM{}'.format(i + 1), fontsize=7)
         plt.xlabel('t', fontsize=5, loc='right')
         plt.ylabel('d_EVA', fontsize=5, loc='top')
         plt.xticks(fontsize=5)
         plt.yticks(fontsize=5)
-        plt.plot(t, DICT['EVA'].EV_P[i, :96] * param.SB, drawstyle='steps')
-    plt.show()
-    # plt.savefig('figure3.svg', dpi=300)
+    for i in range(DICT['EVA'].EV_num):
+        plt.subplot(2, 5, DICT['EVA'].EV_BUS[i]+1)
+        plt.plot(t, DICT['EVA'].EV_P[i, :96], drawstyle='steps')
+    # plt.show()
+    plt.savefig('figure8.svg', dpi=300)
+
+    t = np.arange(0, 96, 1)
+    plt.figure()
+    for i in range(8):
+        plt.subplot(2, 4, i + 1)
+        plt.title('NUM{}'.format(i + 1), fontsize=7)
+        plt.xlabel('t', fontsize=5, loc='right')
+        plt.ylabel('d_EVA', fontsize=5, loc='top')
+        plt.xticks(fontsize=5)
+        plt.yticks(fontsize=5)
+    for i in range(DICT['EVA'].EV_num):
+        if DICT['EVA'].EV_BUS[i] == 0:
+            continue
+        plt.subplot(2, 4, DICT['EVA'].EV_BUS[i])
+        plt.plot(t, DICT['EVA'].EV_P[i, :96], drawstyle='steps')
+    # plt.show()
+    plt.savefig('figure7.svg', dpi=300)
 
 
 

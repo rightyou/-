@@ -1,0 +1,20 @@
+\ Model EV_distribution_copy
+\ LP format - for model browsing. Use MPS format to capture full model detail.
+Minimize
+ 
+Subject To
+ EV_lb[0]: EV_P[0] >= -2.389131888694389
+ EV_lb[1]: EV_P[1] >= 5.832001760551276
+ EV_lb[2]: EV_P[2] >= 5.584688614586289
+ EV_lb[3]: EV_P[3] >= 5.832001760575693
+ EV_lb[4]: EV_P[4] >= 5.832001760575119
+ B: EV_P[0] + EV_P[1] + EV_P[2] + EV_P[3] + EV_P[4] + EV_P[5]
+   = 5.832001760576092
+Bounds
+ EV_P[0] free
+ EV_P[1] free
+ EV_P[2] free
+ EV_P[3] free
+ EV_P[4] free
+ EV_P[5] >= -7.325
+End

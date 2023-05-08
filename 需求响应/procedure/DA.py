@@ -2,6 +2,7 @@ from gurobipy import *
 import numpy as np
 from 需求响应.procedure import show
 
+
 class DA():
     def __init__(self):
         pass
@@ -25,6 +26,7 @@ class DA():
         EVA_BUS = L['EVA_BUS']
         EVA_lb = L['EVA_lb']
         EVA_ub = L['EVA_ub']
+        EVA_P_dischar_max = L['EVA_P_dischar_max']
         EVA_P_char_max = L['EVA_P_char_max']
         EVA_C_out = L['EVA_C_out']
 
@@ -37,7 +39,7 @@ class DA():
         eva - 电动汽车集合充电站实际充电功率（非电网进入充电站功率）
         k1,k2 - 求解峰谷差最小化目标函数参数
         '''
-        Us_ = model.addVars(int(DICT['PowerFlow'].BUS_num), T, vtype=GRB.CONTINUOUS, lb=0.95 ** 2, ub=1.05 ** 2, name='Us')
+        Us_ = model.addVars(int(DICT['PowerFlow'].BUS_num), T, vtype=GRB.CONTINUOUS, lb=9.5 ** 2, ub=10.5 ** 2, name='Us')
         Is_ = model.addVars(int(DICT['PowerFlow'].BUS_num), T, vtype=GRB.CONTINUOUS, lb=0, name='Is')
         P_input = model.addVars(int(DICT['PowerFlow'].BUS_num), T, vtype=GRB.CONTINUOUS, name='P_input')
         Q_input = model.addVars(int(DICT['PowerFlow'].BUS_num), T, vtype=GRB.CONTINUOUS, name='Q_input')
@@ -45,7 +47,7 @@ class DA():
         Q_branch = model.addVars(int(DICT['PowerFlow'].Branch_num), T, vtype=GRB.CONTINUOUS, lb=0, ub=float('inf'), name='Q_branch')
 
         EDG_ = model.addVars(len(EDG_ub), T, vtype=GRB.CONTINUOUS, lb=EDG_lb, ub=EDG_ub, name='EDG')
-        EVA_ = model.addVars(EVA_num, T, vtype=GRB.CONTINUOUS, lb=-EVA_P_char_max, ub=EVA_P_char_max, name='EVA')
+        EVA_ = model.addVars(EVA_num, T, vtype=GRB.CONTINUOUS, lb=EVA_P_dischar_max, ub=EVA_P_char_max, name='EVA')
         k1 = model.addVar(vtype=GRB.CONTINUOUS, name='k1')
         k2 = model.addVar(vtype=GRB.CONTINUOUS, name='k2')
         k3 = model.addVar(vtype=GRB.CONTINUOUS, name='k3')
@@ -76,8 +78,10 @@ class DA():
 
 
             # 网络潮流约束
-            model.addConstr(Us_[0, t] == 1.05 ** 2)
-            model.addConstr(P_input[0, t] == quicksum(P_branch[m, t] for m in range(DICT['PowerFlow'].Branch_num) if DICT['PowerFlow'].Branch_BUS[m, 0] == 0))
+            model.addConstr(Us_[0, t] == 10.5 ** 2)
+            model.addConstr(P_input[0, t] == quicksum(EVA_[n, t] for n in range(EVA_num) if EVA_BUS[n] == 0) +
+                            quicksum(ED[n, t] for n in range(ED_num) if ED_BUS[n] == 0) +
+                            quicksum(P_branch[m, t] for m in range(DICT['PowerFlow'].Branch_num) if DICT['PowerFlow'].Branch_BUS[m, 0] == 0))
             for i in range(DICT['PowerFlow'].Branch_num):
                 head = DICT['PowerFlow'].Branch_BUS[i, 0]
                 back = DICT['PowerFlow'].Branch_BUS[i, 1]
