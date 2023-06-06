@@ -3,18 +3,23 @@
 Minimize
  
 Subject To
- EV_lb[0]: EV_P[0] >= -2.389131888694389
- EV_lb[1]: EV_P[1] >= 5.832001760551276
- EV_lb[2]: EV_P[2] >= 5.584688614586289
- EV_lb[3]: EV_P[3] >= 5.832001760575693
- EV_lb[4]: EV_P[4] >= 5.832001760575119
- B: EV_P[0] + EV_P[1] + EV_P[2] + EV_P[3] + EV_P[4] + EV_P[5]
-   = 5.832001760576092
+ B: EV_P[0] + EV_P[1] + EV_P[2] + EV_P[3] + EV_P[4] + EV_P[5] + EV_P[6]
+   + EV_P[7] + EV_P[8] + EV_P[9] + EV_P[10] + EV_P[11] + EV_P[12]
+   + EV_P[13] + EV_P[14] = 251.7750014053537
 Bounds
- EV_P[0] free
- EV_P[1] free
- EV_P[2] free
- EV_P[3] free
- EV_P[4] free
- EV_P[5] >= -7.325
+ -infinity <= EV_P[0] <= 14.65
+ -infinity <= EV_P[1] <= 19.175
+ -infinity <= EV_P[2] <= 12.525
+ -infinity <= EV_P[3] <= 13.125
+ -infinity <= EV_P[4] <= 23.6
+ -infinity <= EV_P[5] <= 15.35
+ -infinity <= EV_P[6] <= 13.075
+ -infinity <= EV_P[7] <= 23.475
+ -infinity <= EV_P[8] <= 15.025
+ -infinity <= EV_P[9] <= 24.2
+ -infinity <= EV_P[10] <= 15.1
+ -infinity <= EV_P[11] <= 12.575
+ -infinity <= EV_P[12] <= 24.2
+ -infinity <= EV_P[13] <= 12.7
+ -infinity <= EV_P[14] <= 13
 End

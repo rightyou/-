@@ -1,7 +1,10 @@
+import pandas as pd
 from matplotlib import pyplot as plt
 import numpy as np
 import networkx as nx
 import time
+
+from openpyxl.reader.excel import load_workbook
 
 from procedure.data_process import *
 from procedure.EVA import *
@@ -55,15 +58,20 @@ if __name__ == '__main__':
     }
 
 
-    L = {
+    Monte_Carlo = {
         'EVA_ub': [],
         'EVA_lb': [],
         'EVA_P_char_max': [],
         'EVA_P_dischar_max': [],
         'EVA_C_out': [],
-    }
+    }  # 记录蒙特卡罗仿真结果
 
-    for k in range(10):
+    # with pd.ExcelWriter('Road_flow.xlsx') as writer:
+    #     for i in range(DICT['Road'].Road_num):
+    #         df = pd.DataFrame(DICT['Road'].Road_flow[i, :])
+    #         df.to_excel(writer, sheet_name='Sheet{}'.format(i), index=None)
+
+    for k in range(5):
         start = time.time()
 
         data = {
@@ -80,44 +88,40 @@ if __name__ == '__main__':
         DATA.update(data)
 
         DATA = read_Taxi_data(DATA, 'data/Taxi_example.xlsx')
-        Taxi_ = Taxi(DATA)
+        taxi = Taxi(DATA)
         DATA = read_PrivateCar_data(DATA, 'data/PrivateCar_example.xlsx')
-        PrivateCar_ = PrivateCar(DATA)
+        privatecar = PrivateCar(DATA)
 
         d = {
-            'Taxi': Taxi_,
-            'PrivateCar': PrivateCar_,
+            'Taxi': taxi,
+            'PrivateCar': privatecar,
         }
         DICT.update(d)
 
 
         for t in range(DICT['Param'].TT):
-            Taxi_.behavior(DATA, DICT, t)
-            PrivateCar_.behavior(DATA, DICT, t)
+            taxi.behavior(DATA, DICT, t)
+            privatecar.behavior(DATA, DICT, t)
             if t != DICT['Param'].TT-1:
                 DICT['Road'].Road_flow[:, t + 1] = DICT['Road'].Road_flow[:, t]
-            # else:
-            #     DICT['Road'].Road_flow = np.zeros((DICT['Road'].Road_num, DATA['TT']))
+
+        # book = load_workbook('Road_flow.xlsx')
+        # with pd.ExcelWriter('Road_flow.xlsx') as writer:
+        #     writer.book = book
+        #     writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+        #     for i in range(DICT['Road'].Road_num):
+        #         df = pd.DataFrame(DICT['Road'].Road_flow[i, :])
+        #         df.to_excel(writer, sheet_name='Sheet{}'.format(i), index=None, startrow=0, startcol=k)
+
 
         eva = EVA(DATA)
-        L['EVA_ub'].append(eva.EVA_ub)
-        L['EVA_lb'].append(eva.EVA_lb)
-        L['EVA_P_char_max'].append(eva.EVA_P_char_max)
-        L['EVA_P_dischar_max'].append(eva.EVA_P_dischar_max)
-        L['EVA_C_out'].append(eva.EVA_C_out)
+        Monte_Carlo['EVA_ub'].append(eva.EVA_ub)
+        Monte_Carlo['EVA_lb'].append(eva.EVA_lb)
+        Monte_Carlo['EVA_P_char_max'].append(eva.EVA_P_char_max)
+        Monte_Carlo['EVA_P_dischar_max'].append(eva.EVA_P_dischar_max)
+        Monte_Carlo['EVA_C_out'].append(eva.EVA_C_out)
         end = time.time()
         print(end - start)
-
-
-        # G = nx.Graph()
-        # for node in range(1, 30):
-        #     G.add_node(str(node))
-        # for i in range(29):
-        #     for j in range(i):
-        #         if Road.road_network[i, j] != 0:
-        #             G.add_edge(str(i + 1), str(j + 1), length=Road.road_network[i, j])
-        # nx.draw(G, with_labels=True, node_color='y')
-        # plt.show()
 
 
         # t = np.arange(0, 96*2, 1)
@@ -130,14 +134,105 @@ if __name__ == '__main__':
         # plt.show()
 
 
+    Monte_Carlo['EVA_num'] = len(Monte_Carlo['EVA_ub'][0])
+    Monte_Carlo['EVA_BUS'] = np.arange(Monte_Carlo['EVA_num'])
+    n = len(Monte_Carlo['EVA_ub'])
 
-    L['EVA_ub'] = np.mean(np.asarray(L['EVA_ub']), axis=0)
-    L['EVA_lb'] = np.mean(np.asarray(L['EVA_lb']), axis=0)
-    L['EVA_P_char_max'] = np.mean(np.asarray(L['EVA_P_char_max']), axis=0)
-    L['EVA_P_dischar_max'] = np.mean(np.asarray(L['EVA_P_dischar_max']), axis=0)
-    L['EVA_C_out'] = np.mean(np.asarray(L['EVA_C_out']), axis=0)
-    L['EVA_num'] = len(L['EVA_ub'])
-    L['EVA_BUS'] = np.arange(L['EVA_num'])
+    d = np.array(Monte_Carlo['EVA_P_char_max'])
+    fit = np.sort(d, axis=0)
+    k = math.ceil(0.75 * n) - 1
+    Monte_Carlo['EVA_P_char_max'] = fit[k]
+
+    d = np.array(Monte_Carlo['EVA_P_dischar_max'])
+    fit = np.sort(d, axis=0)
+    k = math.ceil(0.75 * n) - 1
+    Monte_Carlo['EVA_P_dischar_max'] = fit[k]
+
+    d = np.array(Monte_Carlo['EVA_ub'])
+    fit = np.sort(d, axis=0)
+    k = math.ceil(0.75 * n) - 1
+    Monte_Carlo['EVA_ub'] = fit[k]
+
+    # with pd.ExcelWriter('EVA_ub.xlsx') as writer:
+    #     df = pd.DataFrame(Monte_Carlo['EVA_ub'] * param.SB)
+    #     df.to_excel(writer, sheet_name='fit', index=None)
+    #     for i in range(len(d[0])):
+    #         df = pd.DataFrame(d[:, i] * param.SB)
+    #         df.to_excel(writer, sheet_name='Sheet{}'.format(i), index=None)
+
+    d = np.array(Monte_Carlo['EVA_lb'])
+    fit = np.sort(d, axis=0)
+    k = n - math.ceil(0.75 * n)
+    Monte_Carlo['EVA_lb'] = fit[k]
+
+    # with pd.ExcelWriter('EVA_lb.xlsx') as writer:
+    #     df = pd.DataFrame(Monte_Carlo['EVA_lb'] * param.SB)
+    #     df.to_excel(writer, sheet_name='fit', index=None)
+    #     for i in range(len(d[0])):
+    #         df = pd.DataFrame(d[:, i] * param.SB)
+    #         df.to_excel(writer, sheet_name='Sheet{}'.format(i), index=None)
+
+    d = np.array(Monte_Carlo['EVA_C_out'])
+    fit = np.sort(d, axis=0)
+    k = math.ceil(0.75 * n) - 1
+    Monte_Carlo['EVA_C_out'] = fit[k]
+
+    # with pd.ExcelWriter('EVA_C_out.xlsx') as writer:
+    #     df = pd.DataFrame(Monte_Carlo['EVA_C_out'] * param.SB)
+    #     df.to_excel(writer, sheet_name='fit', index=None)
+    #     for i in range(len(d[0])):
+    #         df = pd.DataFrame(d[:, i] * param.SB)
+    #         df.to_excel(writer, sheet_name='Sheet{}'.format(i), index=None)
+
+
+
+    # 日前调度
+    DA_EVA = DA()
+    DA_EVA.SP(DICT, Monte_Carlo)
+
+    Monte_Carlo['EVA_C'] = np.zeros((len(Monte_Carlo['EVA_P']), 96*2))
+    disordered_charging = np.zeros((len(Monte_Carlo['EVA_P']), 96*2))
+    for i in range(len(Monte_Carlo['EVA_P'])):
+        for j in range(96*2):
+            Monte_Carlo['EVA_C'][i, j] = sum(Monte_Carlo['EVA_P'][i,:j] - Monte_Carlo['EVA_C_out'][i, :j])
+            disordered_charging[i, j] = Monte_Carlo['EVA_ub'][i, j] - Monte_Carlo['EVA_ub'][i, j-1]
+
+
+    # df = pd.DataFrame(Monte_Carlo['EVA_C'] * param.SB)
+    # df.to_excel('EVA_C.xlsx', sheet_name='Sheet1', index=None)
+    # df = pd.DataFrame(np.stack(((disordered_charging.sum(0)[:96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB, (Monte_Carlo['EVA_P'].sum(0)[:96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB)))
+    # df.to_excel('DA.xlsx', sheet_name='Sheet1', index=None)
+
+
+
+    DICT['EVA'] = eva
+
+    # 日内调度
+    id = ID()
+    # id.SP(DICT, Monte_Carlo)
+    for t in range(1, param.T*2-4):
+        id.SP(t, DICT, Monte_Carlo)
+
+    DICT['EVA'].EV_distribution(DICT)
+
+
+
+    # with pd.ExcelWriter('evaID.xlsx') as writer:
+    #     for i in range(DICT['EVA'].EVA_num):
+    #         df = pd.DataFrame(np.stack((Monte_Carlo['EVA_lb'][i,:96] * param.SB, Monte_Carlo['EVA_ub'][i,:96] * param.SB, DICT['EVA'].EVA_lb[i,:96] * param.SB, DICT['EVA'].EVA_ub[i,:96] * param.SB)))
+    #         df.to_excel(writer, sheet_name='EVAb{}'.format(i), index=None)
+    #         df = pd.DataFrame(np.stack((Monte_Carlo['EVA_C'][i, :96] * param.SB, DICT['EVA'].EVA_C[i, :96] * param.SB)))
+    #         df.to_excel(writer, sheet_name='EVA_C{}'.format(i), index=None)
+    #
+    # df = [[] for x in range(DICT['EVA'].EVA_num)]
+    # for i in range(DICT['EVA'].EV_num):
+    #     df[DICT['EVA'].EV_BUS[i]].append(DICT['EVA'].EV_P[i, :96])
+    #
+    # with pd.ExcelWriter('EV.xlsx') as writer:
+    #     for i in range(DICT['EVA'].EVA_num):
+    #         di = pd.DataFrame(df[i])
+    #         di.to_excel(writer, sheet_name='Sheet{}'.format(i), index=None)
+
 
 
     t = np.arange(0, 96, 1)
@@ -149,34 +244,11 @@ if __name__ == '__main__':
         plt.ylabel('d_EVA', fontsize=5, loc='top')
         plt.xticks(fontsize=5)
         plt.yticks(fontsize=5)
-        plt.plot(t, L['EVA_lb'][i,:96] * param.SB, drawstyle='steps', label='EVA_lb')
-        plt.plot(t, L['EVA_ub'][i,:96] * param.SB, drawstyle='steps', label='EVA_ub')
+        plt.plot(t, Monte_Carlo['EVA_lb'][i,:96] * param.SB, drawstyle='steps', label='EVA_lb')
+        plt.plot(t, Monte_Carlo['EVA_ub'][i,:96] * param.SB, drawstyle='steps', label='EVA_ub')
         plt.legend(loc='upper right', fontsize=5)
-    # plt.show()
-    plt.savefig('figure1.svg', dpi=300)
-
-
-    # 日前调度
-    DA_EVA = DA()
-    DA_EVA.SP(DICT, L)
-
-    L['EVA_C'] = np.zeros((len(L['EVA_P']), 96*2))
-    disordered_charging = np.zeros((len(L['EVA_P']), 96*2))
-    for i in range(len(L['EVA_P'])):
-        for j in range(96*2):
-            # L['EVA_C_out_'] = sum(L['EVA_C_out'][i,:j])
-            L['EVA_C'][i, j] = sum(L['EVA_P'][i,:j] - L['EVA_C_out'][i,:j])
-            disordered_charging[i, j] = L['EVA_ub'][i, j] - L['EVA_ub'][i, j-1]
-
-
-
-    DICT['EVA'] = eva
-    # 日内调度
-    id = ID()
-    # for t in range(param.T):
-    id.SP(DICT, L)
-    DICT['EVA'].EV_distribution(DICT)
-
+    plt.show()
+    # plt.savefig('figure1.svg', dpi=300)
 
     t = np.arange(0, 96, 1)
     plt.figure()
@@ -186,10 +258,10 @@ if __name__ == '__main__':
     plt.xticks(fontsize=5)
     plt.yticks(fontsize=5)
     plt.plot(t, (disordered_charging.sum(0)[:96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB, drawstyle='steps', label='disordered_charging')
-    plt.plot(t, (L['EVA_P'].sum(0)[:96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB, drawstyle='steps', label='ordered_charging')
+    plt.plot(t, (Monte_Carlo['EVA_P'].sum(0)[:96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB, drawstyle='steps', label='ordered_charging')
     plt.legend(loc='upper right', fontsize=5)
-    # plt.show()
-    plt.savefig('figure2.svg', dpi=300)
+    plt.show()
+    # plt.savefig('figure2.svg', dpi=300)
 
     t = np.arange(0, 96, 1)
     plt.figure()
@@ -200,13 +272,12 @@ if __name__ == '__main__':
         plt.ylabel('d_EVA', fontsize=5, loc='top')
         plt.xticks(fontsize=5)
         plt.yticks(fontsize=5)
-        plt.plot(t, L['EVA_lb'][i,:96] * param.SB, drawstyle='steps', label='EVA_lb')
-        plt.plot(t, L['EVA_ub'][i,:96] * param.SB, drawstyle='steps', label='EVA_ub')
-        plt.plot(t, L['EVA_C'][i,:96] * param.SB, drawstyle='steps', label='EVA_C')
+        plt.plot(t, Monte_Carlo['EVA_lb'][i,:96] * param.SB, drawstyle='steps', label='EVA_lb')
+        plt.plot(t, Monte_Carlo['EVA_ub'][i,:96] * param.SB, drawstyle='steps', label='EVA_ub')
+        plt.plot(t, Monte_Carlo['EVA_C'][i,:96] * param.SB, drawstyle='steps', label='EVA_C')
         plt.legend(loc='upper right', fontsize=5)
-    # plt.show()
-    plt.savefig('figure3.svg', dpi=300)
-
+    plt.show()
+    # plt.savefig('figure3.svg', dpi=300)
 
     t = np.arange(0, 96, 1)
     plt.figure()
@@ -217,13 +288,13 @@ if __name__ == '__main__':
         plt.ylabel('d_EVA', fontsize=5, loc='top')
         plt.xticks(fontsize=5)
         plt.yticks(fontsize=5)
-        plt.plot(t, L['EVA_lb'][i,:96] * param.SB, drawstyle='steps', label='DA_EVA_lb')
-        plt.plot(t, L['EVA_ub'][i,:96] * param.SB, drawstyle='steps', label='DA_EVA_ub')
+        plt.plot(t, Monte_Carlo['EVA_lb'][i,:96] * param.SB, drawstyle='steps', label='DA_EVA_lb')
+        plt.plot(t, Monte_Carlo['EVA_ub'][i,:96] * param.SB, drawstyle='steps', label='DA_EVA_ub')
         plt.plot(t, DICT['EVA'].EVA_lb[i,:96] * param.SB, drawstyle='steps', label='ID_EVA_lb')
         plt.plot(t, DICT['EVA'].EVA_ub[i,:96] * param.SB, drawstyle='steps', label='ID_EVA_ub')
         plt.legend(loc='upper right', fontsize=5)
-    # plt.show()
-    plt.savefig('figure4.svg', dpi=300)
+    plt.show()
+    # plt.savefig('figure4.svg', dpi=300)
 
     t = np.arange(0, 96, 1)
     plt.figure()
@@ -234,11 +305,11 @@ if __name__ == '__main__':
         plt.ylabel('Demand', fontsize=5, loc='top')
         plt.xticks(fontsize=5)
         plt.yticks(fontsize=5)
-        plt.plot(t, (L['EVA_C'][i, :96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB, drawstyle='steps', label='DA')
+        plt.plot(t, (Monte_Carlo['EVA_C'][i, :96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB, drawstyle='steps', label='DA')
         plt.plot(t, (DICT['EVA'].EVA_C[i, :96] + DICT['ED'].EDBase.sum(0)[:96]) * param.SB, drawstyle='steps', label='ID')
         plt.legend(loc='upper right', fontsize=5)
-    # plt.show()
-    plt.savefig('figure5.svg', dpi=300)
+    plt.show()
+    # plt.savefig('figure5.svg', dpi=300)
 
     t = np.arange(0, 96, 1)
     plt.figure()
@@ -249,26 +320,26 @@ if __name__ == '__main__':
         plt.ylabel('d_EVA', fontsize=5, loc='top')
         plt.xticks(fontsize=5)
         plt.yticks(fontsize=5)
-        plt.plot(t, L['EVA_C'][i, :96] * param.SB, drawstyle='steps', label='DA')
+        plt.plot(t, Monte_Carlo['EVA_C'][i, :96] * param.SB, drawstyle='steps', label='DA')
         plt.plot(t, DICT['EVA'].EVA_C[i, :96] * param.SB, drawstyle='steps', label='ID')
         plt.legend(loc='upper right', fontsize=5)
-    # plt.show()
-    plt.savefig('figure6.svg', dpi=300)
+    plt.show()
+    # plt.savefig('figure6.svg', dpi=300)
 
-    t = np.arange(0, 96, 1)
-    plt.figure()
-    for i in range(9):
-        plt.subplot(2, 5, i + 1)
-        plt.title('NUM{}'.format(i + 1), fontsize=7)
-        plt.xlabel('t', fontsize=5, loc='right')
-        plt.ylabel('d_EVA', fontsize=5, loc='top')
-        plt.xticks(fontsize=5)
-        plt.yticks(fontsize=5)
-    for i in range(DICT['EVA'].EV_num):
-        plt.subplot(2, 5, DICT['EVA'].EV_BUS[i]+1)
-        plt.plot(t, DICT['EVA'].EV_P[i, :96], drawstyle='steps')
+    # t = np.arange(0, 96, 1)
+    # plt.figure()
+    # for i in range(9):
+    #     plt.subplot(2, 5, i + 1)
+    #     plt.title('NUM{}'.format(i + 1), fontsize=7)
+    #     plt.xlabel('t', fontsize=5, loc='right')
+    #     plt.ylabel('d_EVA', fontsize=5, loc='top')
+    #     plt.xticks(fontsize=5)
+    #     plt.yticks(fontsize=5)
+    # for i in range(DICT['EVA'].EV_num):
+    #     plt.subplot(2, 5, DICT['EVA'].EV_BUS[i]+1)
+    #     plt.plot(t, DICT['EVA'].EV_P[i, :96], drawstyle='steps')
     # plt.show()
-    plt.savefig('figure8.svg', dpi=300)
+    # # plt.savefig('figure8.svg', dpi=300)
 
     t = np.arange(0, 96, 1)
     plt.figure()
@@ -284,8 +355,8 @@ if __name__ == '__main__':
             continue
         plt.subplot(2, 4, DICT['EVA'].EV_BUS[i])
         plt.plot(t, DICT['EVA'].EV_P[i, :96], drawstyle='steps')
-    # plt.show()
-    plt.savefig('figure7.svg', dpi=300)
+    plt.show()
+    # plt.savefig('figure7.svg', dpi=300)
 
 
 

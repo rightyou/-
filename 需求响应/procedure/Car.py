@@ -52,8 +52,7 @@ class Car():
                            dict_['Road'].Road_flow[j, t] / dict_['Road'].Road_capacity[j]) ** \
                    dict_['Road'].a_b_n[dict_['Road'].Road_grade[j] - 1][2]
             x = tuple(dict_['Road'].Road_network[j])
-            weight[x] = dict_['Road'].Road_length[j] / (
-                        self.Car_v[i] / (1 + (dict_['Road'].Road_flow[j,t] / dict_['Road'].Road_capacity[j]) ** beta))
+            weight[x] = dict_['Road'].Road_length[j] / (self.Car_v[i] / (1 + (dict_['Road'].Road_flow[j,t] / dict_['Road'].Road_capacity[j]) ** beta))
 
 
         # Dijkstra路径寻优

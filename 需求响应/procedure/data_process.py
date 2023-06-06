@@ -37,7 +37,7 @@ def read_EV_data(DATA, file):
 def read_ED_data(DATA, file):
     data = pd.read_excel(file)
     DATA['ED_BUS'] = np.array(data['BUS'])
-    DATA['EDBase'] = np.array(data.T.tail(DATA['T']*2).T) / DATA['SB']
+    DATA['EDBase'] = np.array(data.T.tail(DATA['T']*2).T) / DATA['SB'] * 10  # #####################！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！
     return DATA
 
 def read_Price_data(DATA, file):
@@ -81,7 +81,7 @@ def read_ChargingStation_data(DATA, file):
 def read_Taxi_data(DATA, file):
     #  每例生成按正态分布的100组数据
     data = pd.read_excel(file)
-    number = 100
+    number = 50
     DATArand = None
     for i in range(data.shape[0]):
         rand = np.concatenate((
@@ -128,7 +128,7 @@ def read_Taxi_data(DATA, file):
 def read_PrivateCar_data(DATA, file):
     #  每例生成按正态分布的100组数据
     data = pd.read_excel(file)
-    number = 100
+    number = 50
     DATArand = None
     for i in range(data.shape[0]):
         rand = np.concatenate((

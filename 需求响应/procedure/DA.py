@@ -7,7 +7,7 @@ class DA():
     def __init__(self):
         pass
 
-    def SP(self, DICT, L):
+    def SP(self, DICT, Monte_Carlo):
         model = Model('DA')
 
         T = DICT['Param'].T * 2
@@ -22,13 +22,13 @@ class DA():
         EDG_ub = DICT['EDG'].EDG_ub
         EDGPrice = DICT['EDG'].EDGPrice
 
-        EVA_num = L['EVA_num']
-        EVA_BUS = L['EVA_BUS']
-        EVA_lb = L['EVA_lb']
-        EVA_ub = L['EVA_ub']
-        EVA_P_dischar_max = L['EVA_P_dischar_max']
-        EVA_P_char_max = L['EVA_P_char_max']
-        EVA_C_out = L['EVA_C_out']
+        EVA_num = Monte_Carlo['EVA_num']
+        EVA_BUS = Monte_Carlo['EVA_BUS']
+        EVA_lb = Monte_Carlo['EVA_lb']
+        EVA_ub = Monte_Carlo['EVA_ub']
+        EVA_P_dischar_max = Monte_Carlo['EVA_P_dischar_max']
+        EVA_P_char_max = Monte_Carlo['EVA_P_char_max']
+        EVA_C_out = Monte_Carlo['EVA_C_out']
 
         # 添加变量
         '''
@@ -110,20 +110,24 @@ class DA():
 
         # 目标设置
 
-        model.setObjective(k2+k4-k3-k1,GRB.MINIMIZE)
+        model.setObjective(k2+k4-k3-k1, GRB.MINIMIZE)
 
 
         # 模型求解
-        # model.write('out.lp')
-        model.setParam("OutputFlag", 0)
-        model.setParam('Nonconvex', 2)
-        model.setParam("MIPGap", 0)
-        model.optimize()
-        # model.computeIIS()
-        # model.write('model.ilp')
+        try:
+            model.write('out.lp')
+            model.setParam("OutputFlag", 0)
+            model.setParam('Nonconvex', 2)
+            model.setParam("MIPGap", 0)
+            model.optimize()
+            Monte_Carlo['EVA_P'] = show.double_var(EVA_, EVA_num, T)
+        except:
+            model.computeIIS()
+            model.write('model.ilp')
+            pass
 
         # DICT['EDG'].EDG_P = show.double_var(EDG_, len(EDG_ub), T)
-        L['EVA_P'] = show.double_var(EVA_, EVA_num, T)
+        # Monte_Carlo['EVA_P'] = show.double_var(EVA_, EVA_num, T)
 
 
         pass
