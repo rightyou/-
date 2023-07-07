@@ -90,7 +90,7 @@ class EVA():
     def EV_distribution(self, DICT):
         T = DICT['Param'].T * 2
 
-        EV_P_char_max = self.EV_P_char_max * DICT['Param'].SB #* self.EV_lambda_char
+        EV_P_char_max = self.EV_P_char_max * DICT['Param'].SB * self.EV_lambda_char
         EV_P_dischar_max = self.EV_P_dischar_max * DICT['Param'].SB
         EV_lb = np.zeros((self.EV_num,T))  # 确定完成电动汽车需求的最小充电曲线边界，考虑最大充电功率和电网实际供电量
         for i in range(self.EV_num):

@@ -40,7 +40,7 @@ class DA():
         k1,k2 - 求解峰谷差最小化目标函数参数
         '''
         Us_ = model.addVars(int(DICT['PowerFlow'].BUS_num), T, vtype=GRB.CONTINUOUS, lb=9.5 ** 2, ub=10.5 ** 2, name='Us')
-        Is_ = model.addVars(int(DICT['PowerFlow'].BUS_num), T, vtype=GRB.CONTINUOUS, lb=0, name='Is')
+        Is_ = model.addVars(int(DICT['PowerFlow'].Branch_num), T, vtype=GRB.CONTINUOUS, lb=0, name='Is')
         P_input = model.addVars(int(DICT['PowerFlow'].BUS_num), T, vtype=GRB.CONTINUOUS, name='P_input')
         Q_input = model.addVars(int(DICT['PowerFlow'].BUS_num), T, vtype=GRB.CONTINUOUS, name='Q_input')
         P_branch = model.addVars(int(DICT['PowerFlow'].Branch_num), T, vtype=GRB.CONTINUOUS, lb=0, ub=float('inf'), name='P_branch')

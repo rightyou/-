@@ -81,7 +81,7 @@ def read_ChargingStation_data(DATA, file):
 def read_Taxi_data(DATA, file):
     #  每例生成按正态分布的100组数据
     data = pd.read_excel(file)
-    number = 50
+    number = 100
     DATArand = None
     for i in range(data.shape[0]):
         rand = np.concatenate((
@@ -128,7 +128,7 @@ def read_Taxi_data(DATA, file):
 def read_PrivateCar_data(DATA, file):
     #  每例生成按正态分布的100组数据
     data = pd.read_excel(file)
-    number = 50
+    number = 100
     DATArand = None
     for i in range(data.shape[0]):
         rand = np.concatenate((
