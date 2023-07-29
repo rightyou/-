@@ -18,9 +18,9 @@ class DA():
         ED = DICT['ED'].EDBase
         ED_avg = DICT['ED'].ED_avg
 
-        EDG_lb = DICT['EDG'].EDG_lb
-        EDG_ub = DICT['EDG'].EDG_ub
-        EDGPrice = DICT['EDG'].EDGPrice
+        # EDG_lb = DICT['EDG'].EDG_lb
+        # EDG_ub = DICT['EDG'].EDG_ub
+        # EDGPrice = DICT['EDG'].EDGPrice
 
         EVA_num = Monte_Carlo['EVA_num']
         EVA_BUS = Monte_Carlo['EVA_BUS']
@@ -46,7 +46,7 @@ class DA():
         P_branch = model.addVars(int(DICT['PowerFlow'].Branch_num), T, vtype=GRB.CONTINUOUS, lb=0, ub=float('inf'), name='P_branch')
         Q_branch = model.addVars(int(DICT['PowerFlow'].Branch_num), T, vtype=GRB.CONTINUOUS, lb=0, ub=float('inf'), name='Q_branch')
 
-        EDG_ = model.addVars(len(EDG_ub), T, vtype=GRB.CONTINUOUS, lb=EDG_lb, ub=EDG_ub, name='EDG')
+        # EDG_ = model.addVars(len(EDG_ub), T, vtype=GRB.CONTINUOUS, lb=EDG_lb, ub=EDG_ub, name='EDG')
         EVA_ = model.addVars(EVA_num, T, vtype=GRB.CONTINUOUS, lb=EVA_P_dischar_max, ub=EVA_P_char_max, name='EVA')
         k1 = model.addVar(vtype=GRB.CONTINUOUS, name='k1')
         k2 = model.addVar(vtype=GRB.CONTINUOUS, name='k2')

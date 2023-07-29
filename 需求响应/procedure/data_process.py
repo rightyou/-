@@ -13,6 +13,10 @@ def rand_data(data, variance, number):
 
     return DATA
 
+def read_DistributionNetwork_data(DATA, file):
+    data = pd.read_excel(file)
+    DATA['DistributionNetwork_BUS'] = np.array(data['BUS'])
+    return DATA
 
 def read_PowerFlow_data(DATA, file):
     data = pd.read_excel(file)
@@ -37,7 +41,7 @@ def read_EV_data(DATA, file):
 def read_ED_data(DATA, file):
     data = pd.read_excel(file)
     DATA['ED_BUS'] = np.array(data['BUS'])
-    DATA['EDBase'] = np.array(data.T.tail(DATA['T']*2).T) / DATA['SB'] * 10  # #####################！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！
+    DATA['EDBase'] = np.array(data.T.tail(DATA['T']*2).T) / DATA['SB'] * 10  # ！！！
     return DATA
 
 def read_Price_data(DATA, file):
@@ -56,9 +60,19 @@ def read_EDGlb_data(DATA, file):
     DATA['EDG_lb'] = np.array(data.T.tail(DATA['T']*2).T) / DATA['SB']
     return DATA
 
-def read_EDGPrice_data(DATA, file):
+def read_EDG_data(DATA, file):
     data = pd.read_excel(file)
-    DATA['EDGPrice'] = np.array(data.T.tail(3).T)
+    DATA['EDG_BUS'] = np.array(data['BUS'])
+    DATA['EDGPrice_a'] = np.array(data['a'])
+    DATA['EDGPrice_b'] = np.array(data['b'])
+    DATA['EDGPrice_c'] = np.array(data['c'])
+    DATA['EDG_UB'] = -np.array(data['UB']) / DATA['SB']
+    return DATA
+
+def read_RES_data(DATA, file):
+    data = pd.read_excel(file)
+    DATA['RES_BUS'] = np.array(data['BUS'])
+    DATA['P_RES'] = -np.array(data.T.tail(DATA['T']*2).T) / DATA['SB']
     return DATA
 
 def read_Road_data(DATA, file):
@@ -81,7 +95,7 @@ def read_ChargingStation_data(DATA, file):
 def read_Taxi_data(DATA, file):
     #  每例生成按正态分布的100组数据
     data = pd.read_excel(file)
-    number = 100
+    number = 50
     DATArand = None
     for i in range(data.shape[0]):
         rand = np.concatenate((
@@ -105,11 +119,12 @@ def read_Taxi_data(DATA, file):
         else:
             DATArand = np.concatenate((DATArand,rand),0)
     df = pd.DataFrame(DATArand, columns=['C_max', 'T_start', 'T_end', 'SOC_start', 'v', 'P', 'P_charge', 'P_discharge', 'area_start', 'SOC_end', 'SOC_warn', 'P_charge_lambda'])  # 按前面变量顺序排列
-    df.to_excel('data/Taxi.xlsx', sheet_name='Sheet1', index=None)
+    name = file.replace('_example', '')
+    df.to_excel(name, sheet_name='Sheet1', index=None)
 
-    data = pd.read_excel('data/Taxi.xlsx')
+    data = pd.read_excel(name)
     DATA['Car_C_max'] = np.array(data['C_max']) / DATA['SB']
-    DATA['Car_P'] = np.array(data['P']) / DATA['SB'] * 24 / DATA['TT']
+    DATA['Car_P'] = np.array(data['P']) / DATA['SB']
     # DATA['Car_type'] = data['type'].values
     DATA['Car_area_start'] = np.array(data['area_start'])
     DATA['Car_T_start'] = np.array(data['T_start'])
@@ -128,7 +143,7 @@ def read_Taxi_data(DATA, file):
 def read_PrivateCar_data(DATA, file):
     #  每例生成按正态分布的100组数据
     data = pd.read_excel(file)
-    number = 100
+    number = 200
     DATArand = None
     for i in range(data.shape[0]):
         rand = np.concatenate((
@@ -153,11 +168,12 @@ def read_PrivateCar_data(DATA, file):
         else:
             DATArand = np.concatenate((DATArand,rand),0)
     df = pd.DataFrame(DATArand, columns=['C_max', 'T_start', 'T_end', 'SOC_start', 'v', 'P', 'P_charge', 'P_discharge', 'area_start', 'SOC_end', 'SOC_warn', 'P_charge_lambda', 'Car_area_end'])  # 按前面变量顺序排列
-    df.to_excel('data/PrivateCar.xlsx', sheet_name='Sheet1', index=None)
+    name = file.replace('_example', '')
+    df.to_excel(name, sheet_name='Sheet1', index=None)
 
-    data = pd.read_excel('data/PrivateCar.xlsx')
+    data = pd.read_excel(name)
     DATA['Car_C_max'] = np.array(data['C_max']) / DATA['SB']
-    DATA['Car_P'] = np.array(data['P']) / DATA['SB'] * 24 / DATA['TT']
+    DATA['Car_P'] = np.array(data['P']) / DATA['SB']
     # DATA['Car_type'] = data['type'].values
     DATA['Car_area_start'] = np.array(data['area_start'])
     DATA['Car_T_start'] = np.array(data['T_start'])

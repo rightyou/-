@@ -1,7 +1,8 @@
 import numpy as np
-from 需求响应0.procedure.Param import *
+
 
 class RES():
-    def __init__(self, dict_):
-        self.RES_up = dict_['RES_up'].sum(0)
-        # self.RES_ = np.zeros((1, 96))
+    def __init__(self, DATA):
+        self.RES_BUS = DATA['RES_BUS']
+        self.RES_num = len(self.RES_BUS)
+        self.P_RES = DATA['P_RES']

@@ -121,7 +121,6 @@ class ID():
             model.write('model.ilp')
             pass
 
-        print(t)
         pass
 
 
