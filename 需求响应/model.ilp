@@ -1,8 +1,0 @@
-\ Model DC_OPF_copy
-\ LP format - for model browsing. Use MPS format to capture full model detail.
-Minimize
-  0 LOAD_P[0,46]
-Subject To
-Bounds
- 228.4472846943298 <= LOAD_P[0,46] <= 222.2401756975036
-End
