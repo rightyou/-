@@ -19,7 +19,7 @@ from .data_process import *
 
 def montecarlo(path):
     param = Param()
-    simulate_num = 1
+    simulate_num = 3
 
     DATA = read_Road_data(param, '{}/Road.xlsx'.format(path))
     road = Road(DATA, param)

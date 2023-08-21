@@ -25,8 +25,8 @@ class MAJOR():
         self.distr_UP = np.ones((self.DistributionNetwork_num, param.T)) * 500
         self.distr_LO = np.zeros((self.DistributionNetwork_num, param.T))
         for i in range(self.DistributionNetwork_num):
-            self.distr_UP[i, :DN_LIST[i]['DISTR'].T_Adjust1] = DN_LIST[i]['DISTR'].P_UP
-            self.distr_LO[i, :DN_LIST[i]['DISTR'].T_Adjust1] = DN_LIST[i]['DISTR'].P_LO
+            self.distr_UP[i, :DN_LIST[i]['DISTR'].T_Adjust1] = DN_LIST[i]['DISTR'].P_UP[:DN_LIST[i]['DISTR'].T_Adjust1]
+            self.distr_LO[i, :DN_LIST[i]['DISTR'].T_Adjust1] = DN_LIST[i]['DISTR'].P_LO[:DN_LIST[i]['DISTR'].T_Adjust1]
 
     def B_matrix(self, Branch_X):
         Branch_B = np.zeros((self.BUS_num, self.BUS_num))
@@ -39,6 +39,7 @@ class MAJOR():
         return Branch_B
 
 
+    # 生成无向图中所有回路
     def circuit_set(self):
         bus = {}
         for i, j in self.Branch_BUS:
