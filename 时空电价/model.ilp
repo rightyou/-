@@ -1,0 +1,142 @@
+\ Model Load_change_copy
+\ LP format - for model browsing. Use MPS format to capture full model detail.
+Minimize
+ 
+Subject To
+ 可调上界约束[8,69]: P[8,69] <= -0.03175
+ 可调上界约束[8,70]: P[8,70] <= -0.028
+ 可调上界约束[8,71]: P[8,71] <= -0.02425
+ 可调上界约束[8,72]: P[8,72] <= -0.0205
+ 可调上界约束[8,73]: P[8,73] <= -0.023
+ 可调上界约束[8,74]: P[8,74] <= -0.0255
+ 可调上界约束[8,75]: P[8,75] <= -0.028
+ 可调上界约束[8,76]: P[8,76] <= -0.0305
+ 可调上界约束[8,77]: P[8,77] <= -0.0305
+ 可调上界约束[8,78]: P[8,78] <= -0.0305
+ EVA_C_max[69]: EVA[8,0] + EVA[8,1] + EVA[8,2] + EVA[8,3] + EVA[8,4]
+   + EVA[8,5] + EVA[8,6] + EVA[8,7] + EVA[8,8] + EVA[8,9] + EVA[8,10]
+   + EVA[8,11] + EVA[8,12] + EVA[8,13] + EVA[8,14] + EVA[8,15] + EVA[8,16]
+   + EVA[8,17] + EVA[8,18] + EVA[8,19] + EVA[8,20] + EVA[8,21] + EVA[8,22]
+   + EVA[8,23] + EVA[8,24] + EVA[8,25] + EVA[8,26] + EVA[8,27] + EVA[8,28]
+   + EVA[8,29] + EVA[8,30] + EVA[8,31] + EVA[8,32] + EVA[8,33] + EVA[8,34]
+   + EVA[8,35] + EVA[8,36] + EVA[8,37] + EVA[8,38] + EVA[8,39] + EVA[8,40]
+   + EVA[8,41] + EVA[8,42] + EVA[8,43] + EVA[8,44] + EVA[8,45] + EVA[8,46]
+   + EVA[8,47] + EVA[8,48] + EVA[8,49] + EVA[8,50] + EVA[8,51] + EVA[8,52]
+   + EVA[8,53] + EVA[8,54] + EVA[8,55] + EVA[8,56] + EVA[8,57] + EVA[8,58]
+   + EVA[8,59] + EVA[8,60] + EVA[8,61] + EVA[8,62] + EVA[8,63] + EVA[8,64]
+   + EVA[8,65] + EVA[8,66] + EVA[8,67] + EVA[8,68] <= 7.150975000000002
+ EVA_C_min[79]: EVA[8,0] + EVA[8,1] + EVA[8,2] + EVA[8,3] + EVA[8,4]
+   + EVA[8,5] + EVA[8,6] + EVA[8,7] + EVA[8,8] + EVA[8,9] + EVA[8,10]
+   + EVA[8,11] + EVA[8,12] + EVA[8,13] + EVA[8,14] + EVA[8,15] + EVA[8,16]
+   + EVA[8,17] + EVA[8,18] + EVA[8,19] + EVA[8,20] + EVA[8,21] + EVA[8,22]
+   + EVA[8,23] + EVA[8,24] + EVA[8,25] + EVA[8,26] + EVA[8,27] + EVA[8,28]
+   + EVA[8,29] + EVA[8,30] + EVA[8,31] + EVA[8,32] + EVA[8,33] + EVA[8,34]
+   + EVA[8,35] + EVA[8,36] + EVA[8,37] + EVA[8,38] + EVA[8,39] + EVA[8,40]
+   + EVA[8,41] + EVA[8,42] + EVA[8,43] + EVA[8,44] + EVA[8,45] + EVA[8,46]
+   + EVA[8,47] + EVA[8,48] + EVA[8,49] + EVA[8,50] + EVA[8,51] + EVA[8,52]
+   + EVA[8,53] + EVA[8,54] + EVA[8,55] + EVA[8,56] + EVA[8,57] + EVA[8,58]
+   + EVA[8,59] + EVA[8,60] + EVA[8,61] + EVA[8,62] + EVA[8,63] + EVA[8,64]
+   + EVA[8,65] + EVA[8,66] + EVA[8,67] + EVA[8,68] + EVA[8,69] + EVA[8,70]
+   + EVA[8,71] + EVA[8,72] + EVA[8,73] + EVA[8,74] + EVA[8,75] + EVA[8,76]
+   + EVA[8,77] + EVA[8,78] >= 9.665475000000002
+ P_input[8,69]: P[8,69] - EVA[8,69] = -0.3175
+ P_input[8,70]: P[8,70] - EVA[8,70] = -0.28
+ P_input[8,71]: P[8,71] - EVA[8,71] = -0.2425
+ P_input[8,72]: P[8,72] - EVA[8,72] = -0.205
+ P_input[8,73]: P[8,73] - EVA[8,73] = -0.23
+ P_input[8,74]: P[8,74] - EVA[8,74] = -0.255
+ P_input[8,75]: P[8,75] - EVA[8,75] = -0.28
+ P_input[8,76]: P[8,76] - EVA[8,76] = -0.305
+ P_input[8,77]: P[8,77] - EVA[8,77] = -0.305
+ P_input[8,78]: P[8,78] - EVA[8,78] = -0.305
+Bounds
+ P[8,69] free
+ P[8,70] free
+ P[8,71] free
+ P[8,72] free
+ P[8,73] free
+ P[8,74] free
+ P[8,75] free
+ P[8,76] free
+ P[8,77] free
+ P[8,78] free
+ EVA[8,0] free
+ EVA[8,1] free
+ EVA[8,2] free
+ EVA[8,3] free
+ EVA[8,4] free
+ EVA[8,5] free
+ EVA[8,6] free
+ EVA[8,7] free
+ EVA[8,8] free
+ EVA[8,9] free
+ EVA[8,10] free
+ EVA[8,11] free
+ EVA[8,12] free
+ EVA[8,13] free
+ EVA[8,14] free
+ EVA[8,15] free
+ EVA[8,16] free
+ EVA[8,17] free
+ EVA[8,18] free
+ EVA[8,19] free
+ EVA[8,20] free
+ EVA[8,21] free
+ EVA[8,22] free
+ EVA[8,23] free
+ EVA[8,24] free
+ EVA[8,25] free
+ EVA[8,26] free
+ EVA[8,27] free
+ EVA[8,28] free
+ EVA[8,29] free
+ EVA[8,30] free
+ EVA[8,31] free
+ EVA[8,32] free
+ EVA[8,33] free
+ EVA[8,34] free
+ EVA[8,35] free
+ EVA[8,36] free
+ EVA[8,37] free
+ EVA[8,38] free
+ EVA[8,39] free
+ EVA[8,40] free
+ EVA[8,41] free
+ EVA[8,42] free
+ EVA[8,43] free
+ EVA[8,44] free
+ EVA[8,45] free
+ EVA[8,46] free
+ EVA[8,47] free
+ EVA[8,48] free
+ EVA[8,49] free
+ EVA[8,50] free
+ EVA[8,51] free
+ EVA[8,52] free
+ EVA[8,53] free
+ EVA[8,54] free
+ EVA[8,55] free
+ EVA[8,56] free
+ EVA[8,57] free
+ EVA[8,58] free
+ EVA[8,59] free
+ EVA[8,60] free
+ EVA[8,61] free
+ EVA[8,62] free
+ EVA[8,63] free
+ EVA[8,64] free
+ EVA[8,65] free
+ EVA[8,66] free
+ EVA[8,67] free
+ EVA[8,68] free
+ EVA[8,69] free
+ EVA[8,70] free
+ EVA[8,71] free
+ EVA[8,72] free
+ EVA[8,73] free
+ EVA[8,74] free
+ EVA[8,75] free
+ EVA[8,76] free
+ EVA[8,77] free
+ EVA[8,78] free
+End
