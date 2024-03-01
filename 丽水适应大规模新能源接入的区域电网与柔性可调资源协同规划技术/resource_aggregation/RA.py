@@ -13,7 +13,7 @@ from .cluster import *
 def energy_storage__aggregate(DICT, paths):
     Dict = copy.deepcopy(DICT)
     Dict.update({
-        'n_clusters': 3,
+        'n_clusters': {},
         'types_clusters': ['ess', 'pumped_storage'],
         'para_clusters': ['eta', 'Lambda'],
         'ES__cluster': {i: [] for i in range(Dict['BUS'])},
@@ -53,7 +53,7 @@ def energy_storage__aggregate(DICT, paths):
 def generate__aggregate(DICT, paths):
     Dict = copy.deepcopy(DICT)
     Dict.update({
-        'n_clusters': 3,
+        'n_clusters': np.zeros([Dict['BUS']]),
         'types_clusters': ['Hydroelectric', 'PV', 'ThermalPower', 'WP'],
         'para_clusters': ['eta'],
         'G__cluster': {i: [] for i in range(Dict['BUS'])},

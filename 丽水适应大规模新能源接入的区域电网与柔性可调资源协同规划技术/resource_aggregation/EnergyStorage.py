@@ -135,13 +135,14 @@ class ES__Cluster:
             # sigma.append(1/value(model.alpha))
             # fi.append(-value(model.beta[0]) / value(model.alpha))
 
+            # U的约束应为Ui>0，但无解，所以将U改为自由变量
             model = Model('CIIA')
-            U = model.addMVar((np.shape(M0)[0], np.shape(M0)[0]), vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, name='U')
+            U = model.addMVar((np.shape(M0)[0], np.shape(M0)[0]), lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, name='U')
             alpha = model.addMVar((1,), vtype=GRB.CONTINUOUS, name='alpha')
-            beta = model.addMVar((np.shape(M0)[1],), vtype=GRB.CONTINUOUS, name='beta')
+            beta = model.addMVar((np.shape(M0)[1],), lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, name='beta')
             # slackVariable = model.addMVar((Dict['T']), vtype=GRB.CONTINUOUS, name='slackVariable')
 
-            model.addConstr(beta[0] == 0)
+            # model.addConstr(beta[0] == 0)
             model.addConstr(U @ M0 == M[num])
             # model.addConstr(U @ N0 + math.sqrt((1 - Dict['epsilon']) / Dict['epsilon']) * alpha * gama <= N[num] * alpha + M[num] @ beta)
             model.addConstr(U @ N0 <= N[num] * alpha + M[num] @ beta)
@@ -153,8 +154,8 @@ class ES__Cluster:
             model.setParam("MIPGap", 0)
             model.optimize()
 
-            # model.computeIIS()
-            # model.write('model.ilp')
+            model.computeIIS()
+            model.write('model.ilp')
 
 
             sigma.append(1/single_var(alpha, 1))
